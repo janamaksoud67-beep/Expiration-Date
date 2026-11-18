@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>متتبع صلاحية المنتجات | السوبر ماركت</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #reader video { border-radius: 0.75rem; object-fit: cover; }
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(239, 68, 68, 1); }
+            50% { border-color: rgba(239, 68, 68, 0.3); }
+        }
+        .expired-pulse { animation: pulse-border 2s infinite; }
+
+        /* Dark mode adjustments */
+        body.dark .bg-white { background-color: #1e293b !important; }
+        body.dark .bg-slate-50 { background-color: #0f172a !important; }
+        body.dark .bg-slate-100 { background-color: #1e293b !important; }
+        body.dark .bg-slate-200 { background-color: #334155 !important; }
+        body.dark .text-slate-800 { color: #e2e8f0 !important; }
+        body.dark .text-slate-700 { color: #cbd5e1 !important; }
+        body.dark .text-slate-600 { color: #94a3b8 !important; }
+        body.dark .border-slate-200 { border-color: #334155 !important; }
+        body.dark .border-slate-300 { border-color: #475569 !important; }
+        body.dark .bg-red-50\/40 { background-color: rgba(127, 29, 29, 0.3) !important; }
+        body.dark .bg-orange-50\/30 { background-color: rgba(124, 45, 18, 0.3) !important; }
+        body.dark .bg-amber-50\/70 { background-color: rgba(120, 53, 15, 0.3) !important; }
+        body.dark .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.4) !important; }
+        body.dark .text-emerald-800 { color: #6ee7b7 !important; }
+        body.dark .border-emerald-200 { border-color: #065f46 !important; }
+
+        .ai-glow {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.2);
+        }
+        @keyframes ai-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .ai-thinking { animation: ai-pulse 1s infinite; }
+    </style>
+</head>
+<body class="text-slate-800 pb-24 select-none">
+
+    <!-- الشريط العلوي -->
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-lg">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="bg-emerald-500 p-2 rounded-xl text-slate-900">
+                    <i data-lucide="scan-barcode" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-tight" data-i18n="appTitle">متتبع الصلاحية</h1>
+                    <p class="text-xs text-slate-400" data-i18n="appSubtitle">إدارة رفوف السوبر ماركت</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <!-- تبديل اللغة -->
+                <button onclick="toggleLanguage()" title="Language / اللغة" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95 text-xs font-extrabold text-emerald-400">
+                    <span id="langLabel">EN</span>
+                </button>
+                <!-- تبديل الوضع الليلي -->
+                <button onclick="toggleTheme()" title="Theme / الوضع" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                    <i id="themeIcon" data-lucide="moon" class="w-5 h-5 text-amber-400"></i>
+                </button>
+                <!-- AI -->
+                <button onclick="openAIModal()" title="AI Assistant" class="relative p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl transition active:scale-95">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                </button>
+                <!-- التنبيهات -->
+                <button onclick="triggerAlertCheck(true)" title="Alerts" class="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                    <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
+                    <span id="alertBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+                </button>
+                <!-- النسخ الاحتياطي -->
+                <button onclick="openBackupModal()" title="Backup" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                    <i data-lucide="database-backup" class="w-5 h-5 text-sky-400"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- لوحة الإحصائيات -->
+        <div class="bg-slate-800/90 border-t border-slate-700/80 px-3 py-2.5">
+            <div class="max-w-3xl mx-auto grid grid-cols-4 gap-2 text-center">
+                <button onclick="setStatusFilter('expired')" class="bg-red-500/15 border border-red-500/40 rounded-xl p-1.5 active:scale-95 transition">
+                    <div id="count-expired" class="text-lg font-extrabold text-red-400 leading-none">0</div>
+                    <div class="text-[11px] text-red-200 mt-1 font-semibold" data-i18n="statExpired">منتهي</div>
+                </button>
+                <button onclick="setStatusFilter('danger')" class="bg-orange-500/15 border border-orange-500/40 rounded-xl p-1.5 active:scale-95 transition">
+                    <div id="count-danger" class="text-lg font-extrabold text-orange-400 leading-none">0</div>
+                    <div class="text-[11px] text-orange-200 mt-1 font-semibold" data-i18n="statDanger">خطر قريب</div>
+                </button>
+                <button onclick="setStatusFilter('warning')" class="bg-amber-500/15 border border-amber-500/40 rounded-xl p-1.5 active:scale-95 transition">
+                    <div id="count-warning" class="text-lg font-extrabold text-amber-300 leading-none">0</div>
+                    <div class="text-[11px] text-amber-100 mt-1 font-semibold" data-i18n="statWarning">مراقبة</div>
+                </button>
+                <button onclick="setStatusFilter('safe')" class="bg-emerald-500/15 border border-emerald-500/40 rounded-xl p-1.5 active:scale-95 transition">
+                    <div id="count-safe" class="text-lg font-extrabold text-emerald-400 leading-none">0</div>
+                    <div class="text-[11px] text-emerald-200 mt-1 font-semibold" data-i18n="statSafe">سليم</div>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-3 pt-4 space-y-4">
+
+        <!-- البحث -->
+        <div class="flex gap-2">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 rtl:right-3.5 rtl:left-auto ltr:left-3.5 ltr:right-auto"></i>
+                <input type="text" id="searchInput" oninput="onSearchInput()" data-i18n-placeholder="searchPlaceholder" placeholder="ابحث باسم الصنف أو الباركود..."
+                    class="w-full bg-white border border-slate-300 rounded-2xl py-3 pr-11 pl-10 text-sm font-semibold focus:outline-none focus:border-slate-900 shadow-sm">
+                <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1">
+                    <i data-lucide="x-circle" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <button onclick="startScanner('search')" data-i18n-title="cameraSearch" title="بحث بالكاميرا" class="bg-slate-800 text-white px-4 rounded-2xl flex items-center justify-center shadow-sm active:scale-95 transition">
+                <i data-lucide="camera" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- فلاتر الحالة -->
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="statusFilters">
+            <button data-status="all" onclick="setStatusFilter('all')" class="status-pill active-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-900 text-white shadow-sm" data-i18n="filterAll">الكل</button>
+            <button data-status="expired" onclick="setStatusFilter('expired')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-red-600 border border-slate-200" data-i18n="filterExpired">🔴 منتهي الصلاحية</button>
+            <button data-status="danger" onclick="setStatusFilter('danger')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-orange-600 border border-slate-200" data-i18n="filterDanger">🟠 خطر قريب</button>
+            <button data-status="warning" onclick="setStatusFilter('warning')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-amber-600 border border-slate-200" data-i18n="filterWarning">🟡 خلال 30 يوم</button>
+            <button data-status="safe" onclick="setStatusFilter('safe')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-emerald-600 border border-slate-200" data-i18n="filterSafe">🟢 سليم</button>
+        </div>
+
+        <!-- فلاتر الأقسام -->
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="categoryFilters">
+            <button data-cat="all" onclick="setCategoryFilter('all')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-200 text-slate-900" data-i18n="catAll">جميع الأقسام</button>
+            <button data-cat="dairy" onclick="setCategoryFilter('dairy')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catDairy">🥛 ألبان وأجبان</button>
+            <button data-cat="canned" onclick="setCategoryFilter('canned')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catCanned">🥫 معلبات</button>
+            <button data-cat="drinks" onclick="setCategoryFilter('drinks')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catDrinks">🧃 مشروبات</button>
+            <button data-cat="sweets" onclick="setCategoryFilter('sweets')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catSweets">🍫 حلويات</button>
+            <button data-cat="frozen" onclick="setCategoryFilter('frozen')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catFrozen">❄️ مجمدات</button>
+            <button data-cat="other" onclick="setCategoryFilter('other')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catOther">📦 أخرى</button>
+        </div>
+
+        <div id="batchesList" class="space-y-3"></div>
+
+        <div id="emptyState" class="hidden text-center py-12 px-4 bg-white rounded-3xl border border-dashed border-slate-300">
+            <div class="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <i data-lucide="package-open" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-bold text-slate-700 text-base" data-i18n="emptyTitle">لا توجد أصناف مطابقة</h3>
+            <p class="text-xs text-slate-500 mt-1" data-i18n="emptySubtitle">اضغط على زر الإضافة بالأسفل لمسح باركود جديد</p>
+        </div>
+    </main>
+
+    <!-- زر الإضافة العائم -->
+    <div class="fixed bottom-5 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
+        <button onclick="openAddModal()" class="pointer-events-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white font-extrabold text-base px-7 py-4 rounded-2xl shadow-xl shadow-emerald-900/25 flex items-center gap-3">
+            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+            <span data-i18n="addBtn">إضافة صنف / مسح باركود</span>
+        </button>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex flex-col justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full mx-auto overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="scan" class="w-5 h-5 text-emerald-400"></i>
+                    <span class="font-bold text-sm" id="scannerTitle" data-i18n="scannerTitle">وجّه الكاميرا نحو الباركود</span>
+                </div>
+                <button onclick="stopScanner()" class="bg-slate-800 p-1.5 rounded-xl text-slate-300 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 bg-slate-900">
+                <div id="reader" class="w-full overflow-hidden rounded-2xl bg-black min-h-[250px]"></div>
+                <p id="scannerError" class="hidden text-red-400 text-xs text-center mt-3 font-semibold"></p>
+            </div>
+            <div class="p-4 bg-white text-center">
+                <button onclick="stopScanner()" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm" data-i18n="closeCamera">إغلاق الكاميرا والإدخال يدوياً</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div id="addModal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-xs overflow-y-auto p-3 sm:p-6">
+        <div class="bg-white rounded-3xl max-w-lg w-full mx-auto my-2 shadow-2xl overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h2 class="font-extrabold text-base flex items-center gap-2">
+                    <i data-lucide="package-plus" class="w-5 h-5 text-emerald-400"></i>
+                    <span data-i18n="addModalTitle">تسجيل تاريخ صلاحية صنف</span>
+                </h2>
+                <button onclick="closeAddModal()" class="bg-slate-800 p-1.5 rounded-xl text-slate-300 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="productForm" onsubmit="saveBatch(event)" class="p-5 space-y-4">
+                <div id="autoFillBanner" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                    <span data-i18n="autoFillMsg">تم التعرف على المنتج تلقائياً! أدخل تاريخ الانتهاء الجديد والكمية فقط.</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5" data-i18n="barcodeLabel">رقم الباركود (اختياري أو بالمسح)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="inputBarcode" oninput="handleBarcodeLookup(this.value)" data-i18n-placeholder="barcodePlaceholder" placeholder="امسح أو اكتب الرقم هنا..."
+                            class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-sm font-bold focus:outline-none focus:border-emerald-600 focus:bg-white">
+                        <button type="button" onclick="startScanner('form')" class="bg-slate-900 hover:bg-slate-800 text-white px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 active:scale-95 transition shrink-0">
+                            <i data-lucide="scan-barcode" class="w-5 h-5 text-emerald-400"></i>
+                            <span data-i18n="scanBtn">مسح</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 items-start">
+                    <div class="shrink-0">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 text-center" data-i18n="photoLabel">صورة</label>
+                        <label for="inputImage" class="cursor-pointer block w-20 h-20 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 overflow-hidden relative flex flex-col items-center justify-center text-slate-400 transition">
+                            <img id="imagePreview" src="" alt="preview" class="hidden w-full h-full object-cover">
+                            <div id="imagePlaceholder" class="flex flex-col items-center">
+                                <i data-lucide="camera" class="w-6 h-6 text-slate-500"></i>
+                                <span class="text-[10px] font-bold mt-1" data-i18n="takePhoto">التقط</span>
+                            </div>
+                        </label>
+                        <input type="file" id="inputImage" accept="image/*" capture="environment" onchange="processImage(event)" class="hidden">
+                        <button type="button" id="removeImgBtn" onclick="clearImage()" class="hidden w-full text-[10px] text-red-600 font-bold mt-1 text-center" data-i18n="removePhoto">حذف الصورة</button>
+                    </div>
+
+                    <div class="flex-1 space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="nameLabel">اسم الصنف *</label>
+                            <input type="text" id="inputName" required data-i18n-placeholder="namePlaceholder" placeholder="مثال: لبنة المراعي 400 غرام"
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-600 focus:bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1" data-i18n="categoryLabel">القسم</label>
+                            <select id="inputCategory" onchange="suggestAlertDays()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-600">
+                                <option value="dairy" data-i18n="catDairy">🥛 ألبان وأجبان</option>
+                                <option value="canned" data-i18n="catCanned">🥫 معلبات</option>
+                                <option value="drinks" data-i18n="catDrinks">🧃 مشروبات</option>
+                                <option value="sweets" data-i18n="catSweets">🍫 حلويات</option>
+                                <option value="frozen" data-i18n="catFrozen">❄️ مجمدات</option>
+                                <option value="other" data-i18n="catOther">📦 أخرى</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/70 border border-amber-200 p-3.5 rounded-2xl">
+                    <label class="block text-xs font-extrabold text-slate-800 mb-1.5 flex items-center justify-between">
+                        <span data-i18n="expiryLabel">تاريخ انتهاء الصلاحية *</span>
+                        <span id="daysPreviewText" class="text-xs font-bold text-emerald-700"></span>
+                    </label>
+                    <input type="date" id="inputExpiry" required onchange="updateDaysPreview()"
+                        class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-3 text-base font-extrabold text-slate-900 focus:outline-none focus:border-emerald-600">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5" data-i18n="qtyLabel">الكمية على الرف</label>
+                        <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+                            <button type="button" onclick="adjustFormQty(-1)" class="px-3.5 py-2.5 bg-slate-200 hover:bg-slate-300 font-extrabold text-lg">-</button>
+                            <input type="number" id="inputQty" value="1" min="1" required class="w-full text-center bg-transparent font-extrabold text-base focus:outline-none">
+                            <button type="button" onclick="adjustFormQty(1)" class="px-3.5 py-2.5 bg-slate-200 hover:bg-slate-300 font-extrabold text-lg">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5" data-i18n="alertDaysLabel">نبهني قبل (أيام)</label>
+                        <input type="number" id="inputAlertDays" value="7" min="1" max="180" required
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-base font-extrabold text-center focus:outline-none focus:border-emerald-600">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex gap-2.5">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white font-extrabold py-3.5 rounded-2xl text-base shadow-lg shadow-emerald-600/20" data-i18n="saveBtn">حفظ الصنف</button>
+                    <button type="button" onclick="closeAddModal()" class="px-5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 rounded-2xl text-sm" data-i18n="cancelBtn">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Backup Modal -->
+    <div id="backupModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-5 h-5 text-sky-400"></i>
+                    <span data-i18n="backupTitle">النسخ الاحتياطي وإدارة البيانات</span>
+                </h3>
+                <button onclick="closeBackupModal()" class="bg-slate-800 p-1.5 rounded-xl text-slate-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p class="text-xs text-slate-600 leading-relaxed bg-slate-100 p-3 rounded-xl" data-i18n="backupInfo">
+                    يتم حفظ بياناتك وصور المنتجات محلياً على هذا الهاتف. ننصح بتصدير نسخة احتياطية كل أسبوع.
+                </p>
+
+                <button onclick="exportData()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span data-i18n="exportBtn">تصدير نسخة احتياطية (JSON)</span>
+                </button>
+
+                <label class="w-full cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
+                    <i data-lucide="upload" class="w-5 h-5 text-emerald-400"></i>
+                    <span data-i18n="importBtn">استعادة بيانات من ملف</span>
+                    <input type="file" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
+
+                <hr class="border-slate-200">
+
+                <button onclick="requestClearAll()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span data-i18n="clearAllBtn">مسح جميع البيانات</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Modal -->
+    <div id="aiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
+        <div class="bg-white rounded-3xl max-w-2xl w-full mx-auto my-4 shadow-2xl overflow-hidden ai-glow">
+            <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-yellow-300"></i>
+                    <span data-i18n="aiTitle">المساعد الذكي</span>
+                </h3>
+                <button onclick="closeAIModal()" class="bg-white/20 p-1.5 rounded-xl text-white hover:bg-white/30">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+                    <p class="text-sm text-purple-900 font-semibold leading-relaxed" data-i18n="aiWelcome">
+                        👋 مرحباً! أنا مساعدك الذكي. سأحلل بيانات رفوفك وأقدم لك توصيات فورية.
+                    </p>
+                </div>
+
+                <div id="aiLoading" class="hidden text-center py-6">
+                    <div class="inline-flex items-center gap-2 text-purple-700 font-bold ai-thinking">
+                        <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                        <span data-i18n="aiThinking">جاري التحليل الذكي...</span>
+                    </div>
+                </div>
+
+                <div id="aiContent" class="space-y-3"></div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="runAIAnalysis()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span data-i18n="aiAnalyzeBtn">تحليل البيانات</span>
+                    </button>
+                    <button onclick="runAIPriority()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                        <span data-i18n="aiPriorityBtn">أولويات العمل</span>
+                    </button>
+                    <button onclick="runAIReport()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span data-i18n="aiReportBtn">تقرير شامل</span>
+                    </button>
+                    <button onclick="runAIAdvice()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i data-lucide="lightbulb" class="w-4 h-4"></i>
+                        <span data-i18n="aiAdviceBtn">نصائح ذكية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirmDialog" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl text-center space-y-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h4 id="confirmTitle" class="font-extrabold text-slate-900 text-base">تأكيد العملية</h4>
+            <p id="confirmMessage" class="text-xs text-slate-600 leading-relaxed"></p>
+            <div class="flex gap-2.5 pt-1">
+                <button id="confirmYesBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-sm" data-i18n="confirmYes">نعم، متأكد</button>
+                <button onclick="closeConfirmDialog()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2.5 rounded-xl text-sm" data-i18n="cancelBtn">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2">
+        <div id="toastContent" class="bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 border border-slate-700">
+            <span id="toastIcon"></span>
+            <span id="toastText"></span>
+        </div>
+    </div>
+
+<script>
+// ==========================================
+// Translation Dictionary
+// ==========================================
+const I18N = {
+    ar: {
+        appTitle: 'متتبع الصلاحية',
+        appSubtitle: 'إدارة رفوف السوبر ماركت',
+        searchPlaceholder: 'ابحث باسم الصنف أو الباركود...',
+        cameraSearch: 'بحث بالكاميرا',
+        filterAll: 'الكل',
+        filterExpired: '🔴 منتهي الصلاحية',
+        filterDanger: '🟠 خطر قريب',
+        filterWarning: '🟡 خلال 30 يوم',
+        filterSafe: '🟢 سليم',
+        catAll: 'جميع الأقسام',
+        catDairy: '🥛 ألبان وأجبان',
+        catCanned: '🥫 معلبات',
+        catDrinks: '🧃 مشروبات',
+        catSweets: '🍫 حلويات',
+        catFrozen: '❄️ مجمدات',
+        catOther: '📦 أخرى',
+        emptyTitle: 'لا توجد أصناف مطابقة',
+        emptySubtitle: 'اضغط على زر الإضافة بالأسفل لمسح باركود جديد',
+        addBtn: 'إضافة صنف / مسح باركود',
+        scannerTitle: 'وجّه الكاميرا نحو الباركود',
+        scannerSearchTitle: 'امسح باركود الصنف للبحث عنه',
+        scannerAddTitle: 'امسح باركود الصنف لإضافته',
+        closeCamera: 'إغلاق الكاميرا والإدخال يدوياً',
+        cameraError: 'تعذر الوصول للكاميرا. تأكد من إعطاء صلاحية الكاميرا للمتصفح أو استخدم الإدخال اليدوي.',
+        cameraNotSupported: 'المتصفح لا يدعم تشغيل الكاميرا مباشرة.',
+        addModalTitle: 'تسجيل تاريخ صلاحية صنف',
+        autoFillMsg: 'تم التعرف على المنتج تلقائياً! أدخل تاريخ الانتهاء الجديد والكمية فقط.',
+        barcodeLabel: 'رقم الباركود (اختياري أو بالمسح)',
+        barcodePlaceholder: 'امسح أو اكتب الرقم هنا...',
+        scanBtn: 'مسح',
+        photoLabel: 'صورة',
+        takePhoto: 'التقط',
+        removePhoto: 'حذف الصورة',
+        nameLabel: 'اسم الصنف *',
+        namePlaceholder: 'مثال: لبنة المراعي 400 غرام',
+        categoryLabel: 'القسم',
+        expiryLabel: 'تاريخ انتهاء الصلاحية *',
+        qtyLabel: 'الكمية على الرف',
+        alertDaysLabel: 'نبهني قبل (أيام)',
+        saveBtn: 'حفظ الصنف',
+        cancelBtn: 'إلغاء',
+        backupTitle: 'النسخ الاحتياطي وإدارة البيانات',
+        backupInfo: 'يتم حفظ بياناتك وصور المنتجات محلياً على هذا الهاتف. ننصح بتصدير نسخة احتياطية كل أسبوع لحماية البيانات عند تغيير الهاتف أو مسح بيانات المتصفح.',
+        exportBtn: 'تصدير نسخة احتياطية (JSON)',
+        importBtn: 'استعادة بيانات من ملف سابق',
+        clearAllBtn: 'مسح جميع البيانات من التطبيق',
+        aiTitle: 'المساعد الذكي',
+        aiWelcome: '👋 مرحباً! أنا مساعدك الذكي. سأحلل بيانات رفوفك وأقدم لك توصيات فورية.',
+        aiThinking: 'جاري التحليل الذكي...',
+        aiAnalyzeBtn: 'تحليل البيانات',
+        aiPriorityBtn: 'أولويات العمل',
+        aiReportBtn: 'تقرير شامل',
+        aiAdviceBtn: 'نصائح ذكية',
+        confirmYes: 'نعم، متأكد',
+        statExpired: 'منتهي',
+        statDanger: 'خطر قريب',
+        statWarning: 'مراقبة',
+        statSafe: 'سليم',
+        // Dynamic
+        expiredSince: (d) => `منتهي منذ ${d} يوم`,
+        expiresToday: 'ينتهي اليوم!',
+        daysLeft: (d) => d === 1 ? 'باقي يوم واحد!' : `باقي ${d} أيام`,
+        daysLeftShort: (d) => `باقي ${d} يوم`,
+        expiryDate: 'ينتهي في:',
+        qty: 'الكمية:',
+        dispose: 'تم التصريف',
+        disposeConfirmTitle: 'تم تصريف الكمية؟',
+        disposeConfirmMsg: (name) => `هل تريد إزالة "${name}" من قائمة المتابعة (تم بيعه بالكامل أو سحبه من الرف)؟`,
+        saveSuccess: 'تم حفظ الصنف بنجاح على الرف',
+        removeSuccess: 'تمت إزالة الدفعة من القائمة',
+        clearAllConfirmTitle: 'مسح جميع البيانات؟',
+        clearAllConfirmMsg: 'سيتم حذف كافة المنتجات والصور المسجلة نهائياً من هذا الهاتف. هل أنت متأكد؟',
+        clearAllSuccess: 'تم مسح جميع البيانات',
+        exportSuccess: 'تم تنزيل ملف النسخة الاحتياطية بنجاح',
+        importSuccess: (n) => `تمت استعادة ${n} صنف بنجاح!`,
+        importInvalid: 'صيغة الملف غير صالحة',
+        importError: 'فشل قراءة الملف، تأكد أنه ملف نسخة احتياطية صحيح',
+        noAlerts: 'ممتاز! لا توجد أصناف منتهية أو في منطقة الخطر حالياً.',
+        alertMsg: (e, d) => `تنبيه: لديك ${e} صنف منتهي الصلاحية، و ${d} صنف قريب الانتهاء!`,
+        storageError: 'الذاكرة ممتلئة! يرجى تصدير نسخة احتياطية وحذف الأصناف القديمة.',
+        readError: 'حدث خطأ في قراءة الذاكرة المحلية',
+        searchSuccess: (code) => `تم البحث عن الباركود: ${code}`,
+        daysRemaining: (d) => `متبقي ${d} يوم`,
+        expiredSinceShort: (d) => `⚠️ منتهي منذ ${d} يوم`,
+        expiresTodayShort: '⚠️ ينتهي اليوم',
+        // AI
+        aiAnalysisTitle: '📊 تحليل البيانات',
+        aiPriorityTitle: '🎯 أولويات العمل',
+        aiReportTitle: '📋 تقرير شامل',
+        aiAdviceTitle: '💡 نصائح ذكية',
+        aiNoData: 'لا توجد بيانات كافية للتحليل. أضف بعض المنتجات أولاً.',
+        aiHealthy: '✅ وضعك ممتاز! جميع المنتجات في حالة سليمة.',
+        aiTotal: 'إجمالي الأصناف',
+        aiTotalQty: 'إجمالي الكميات',
+        aiCategories: 'الأقسام',
+        aiRiskRate: 'نسبة المخاطر',
+        aiActionRequired: 'إجراء مطلوب فوراً',
+        aiActionSoon: 'إجراء قريب',
+        aiActionMonitor: 'مراقبة',
+        aiActionOk: 'سليم',
+    },
+    en: {
+        appTitle: 'Expiry Tracker',
+        appSubtitle: 'Supermarket Shelf Management',
+        searchPlaceholder: 'Search by name or barcode...',
+        cameraSearch: 'Camera Search',
+        filterAll: 'All',
+        filterExpired: '🔴 Expired',
+        filterDanger: '🟠 Near Danger',
+        filterWarning: '🟡 Within 30 days',
+        filterSafe: '🟢 Safe',
+        catAll: 'All Categories',
+        catDairy: '🥛 Dairy & Cheese',
+        catCanned: '🥫 Canned',
+        catDrinks: '🧃 Drinks',
+        catSweets: '🍫 Sweets',
+        catFrozen: '❄️ Frozen',
+        catOther: '📦 Other',
+        emptyTitle: 'No matching items',
+        emptySubtitle: 'Tap the add button below to scan a new barcode',
+        addBtn: 'Add Item / Scan Barcode',
+        scannerTitle: 'Point camera at barcode',
+        scannerSearchTitle: 'Scan barcode to search',
+        scannerAddTitle: 'Scan barcode to add item',
+        closeCamera: 'Close camera & enter manually',
+        cameraError: 'Cannot access camera. Please grant camera permission or use manual input.',
+        cameraNotSupported: 'Browser does not support camera.',
+        addModalTitle: 'Register Product Expiry',
+        autoFillMsg: 'Product recognized automatically! Just enter new expiry date and quantity.',
+        barcodeLabel: 'Barcode (optional or scan)',
+        barcodePlaceholder: 'Scan or type barcode here...',
+        scanBtn: 'Scan',
+        photoLabel: 'Photo',
+        takePhoto: 'Take',
+        removePhoto: 'Remove Photo',
+        nameLabel: 'Product Name *',
+        namePlaceholder: 'e.g. Almarai Labneh 400g',
+        categoryLabel: 'Category',
+        expiryLabel: 'Expiry Date *',
+        qtyLabel: 'Shelf Quantity',
+        alertDaysLabel: 'Alert before (days)',
+        saveBtn: 'Save Product',
+        cancelBtn: 'Cancel',
+        backupTitle: 'Backup & Data Management',
+        backupInfo: 'Your data and product images are stored locally on this phone. We recommend exporting a backup weekly to protect data when changing phones or clearing browser data.',
+        exportBtn: 'Export Backup (JSON)',
+        importBtn: 'Restore from File',
+        clearAllBtn: 'Clear All Data',
+        aiTitle: 'AI Assistant',
+        aiWelcome: '👋 Hello! I am your smart assistant. I will analyze your shelf data and provide instant recommendations.',
+        aiThinking: 'AI analyzing...',
+        aiAnalyzeBtn: 'Analyze Data',
+        aiPriorityBtn: 'Work Priorities',
+        aiReportBtn: 'Full Report',
+        aiAdviceBtn: 'Smart Tips',
+        confirmYes: 'Yes, Confirm',
+        statExpired: 'Expired',
+        statDanger: 'Near Danger',
+        statWarning: 'Monitor',
+        statSafe: 'Safe',
+        expiredSince: (d) => `Expired ${d}d ago`,
+        expiresToday: 'Expires today!',
+        daysLeft: (d) => d === 1 ? '1 day left!' : `${d} days left`,
+        daysLeftShort: (d) => `${d}d left`,
+        expiryDate: 'Expires:',
+        qty: 'Qty:',
+        dispose: 'Disposed',
+        disposeConfirmTitle: 'Dispose quantity?',
+        disposeConfirmMsg: (name) => `Remove "${name}" from tracking (sold out or pulled from shelf)?`,
+        saveSuccess: 'Product saved successfully',
+        removeSuccess: 'Batch removed from list',
+        clearAllConfirmTitle: 'Clear all data?',
+        clearAllConfirmMsg: 'All products and images will be permanently deleted from this phone. Are you sure?',
+        clearAllSuccess: 'All data cleared',
+        exportSuccess: 'Backup file downloaded successfully',
+        importSuccess: (n) => `Restored ${n} items successfully!`,
+        importInvalid: 'Invalid file format',
+        importError: 'Failed to read file, ensure it is a valid backup file',
+        noAlerts: 'Great! No expired or near-danger items currently.',
+        alertMsg: (e, d) => `Alert: You have ${e} expired and ${d} near-expiry items!`,
+        storageError: 'Storage full! Please export backup and delete old items.',
+        readError: 'Error reading local storage',
+        searchSuccess: (code) => `Searched for barcode: ${code}`,
+        daysRemaining: (d) => `${d} days remaining`,
+        expiredSinceShort: (d) => `⚠️ Expired ${d}d ago`,
+        expiresTodayShort: '⚠️ Expires today',
+        aiAnalysisTitle: '📊 Data Analysis',
+        aiPriorityTitle: '🎯 Work Priorities',
+        aiReportTitle: '📋 Full Report',
+        aiAdviceTitle: '💡 Smart Tips',
+        aiNoData: 'Not enough data for analysis. Add some products first.',
+        aiHealthy: '✅ Excellent! All products are in good condition.',
+        aiTotal: 'Total Items',
+        aiTotalQty: 'Total Quantities',
+        aiCategories: 'Categories',
+        aiRiskRate: 'Risk Rate',
+        aiActionRequired: 'Action Required Now',
+        aiActionSoon: 'Action Soon',
+        aiActionMonitor: 'Monitor',
+        aiActionOk: 'Safe',
+    }
+};
+
+// ==========================================
+// State
+// ==========================================
+const STORAGE_KEYS = {
+    BATCHES: 'sm_expiry_batches_v1',
+    CATALOG: 'sm_product_catalog_v1',
+    INIT: 'sm_initialized_v1',
+    LANG: 'sm_lang',
+    THEME: 'sm_theme',
+    FILTERS: 'sm_filters',
+    FORM_DRAFT: 'sm_form_draft'
+};
+
+let batches = [];
+let catalog = {};
+let currentStatusFilter = 'all';
+let currentCategoryFilter = 'all';
+let currentCompressedImage = '';
+let html5QrcodeScanner = null;
+let scannerMode = 'form';
+let currentLang = 'ar';
+let currentTheme = 'light';
+let confirmCallback = null;
+let toastTimeout;
+
+function t(key, ...args) {
+    const dict = I18N[currentLang] || I18N.ar;
+    const val = dict[key];
+    if (typeof val === 'function') return val(...args);
+    return val || key;
+}
+
+// ==========================================
+// Boot
+// ==========================================
+window.onload = function() {
+    loadPreferences();
+    loadData();
+    applyLanguage();
+    applyTheme();
+    restoreFilters();
+    lucide.createIcons();
+    renderBatches();
+    triggerAlertCheck(false);
+    bindFormDraft();
+};
+
+// ==========================================
+// Preferences (Lang / Theme)
+// ==========================================
+function loadPreferences() {
+    currentLang = localStorage.getItem(STORAGE_KEYS.LANG) || 'ar';
+    currentTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
+}
+
+function applyLanguage() {
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    document.getElementById('langLabel').textContent = currentLang === 'ar' ? 'EN' : 'AR';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (I18N[currentLang][key]) el.placeholder = I18N[currentLang][key];
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.dataset.i18nTitle;
+        if (I18N[currentLang][key]) el.title = I18N[currentLang][key];
+    });
+    document.title = currentLang === 'ar' ? 'متتبع صلاحية المنتجات' : 'Expiry Tracker';
+    renderBatches();
+    updateDaysPreview();
+}
+
+function toggleLanguage() {
+    currentLang = currentLang === 'ar' ? 'en' : 'ar';
+    localStorage.setItem(STORAGE_KEYS.LANG, currentLang);
+    applyLanguage();
+    showToast(currentLang === 'ar' ? 'تم التبديل إلى العربية' : 'Switched to English', 'success');
+}
+
+function applyTheme() {
+    document.body.classList.toggle('dark', currentTheme === 'dark');
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.setAttribute('data-lucide', currentTheme === 'dark' ? 'sun' : 'moon');
+        icon.classList.toggle('text-amber-400', currentTheme !== 'dark');
+        icon.classList.toggle('text-yellow-300', currentTheme === 'dark');
+    }
+    lucide.createIcons();
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(STORAGE_KEYS.THEME, currentTheme);
+    applyTheme();
+}
+
+// ==========================================
+// Filters Persistence
+// ==========================================
+function restoreFilters() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.FILTERS) || '{}');
+        if (saved.status) currentStatusFilter = saved.status;
+        if (saved.category) currentCategoryFilter = saved.category;
+        if (saved.search) document.getElementById('searchInput').value = saved.search;
+        setStatusFilter(currentStatusFilter, false);
+        setCategoryFilter(currentCategoryFilter, false);
+    } catch (e) {}
+}
+
+function saveFilters() {
+    localStorage.setItem(STORAGE_KEYS.FILTERS, JSON.stringify({
+        status: currentStatusFilter,
+        category: currentCategoryFilter,
+        search: document.getElementById('searchInput').value
+    }));
+}
+
+// ==========================================
+// Form Draft (Auto-save inputs)
+// ==========================================
+function bindFormDraft() {
+    const fields = ['inputBarcode', 'inputName', 'inputCategory', 'inputExpiry', 'inputQty', 'inputAlertDays'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', saveFormDraft);
+            el.addEventListener('change', saveFormDraft);
+        }
+    });
+}
+
+function saveFormDraft() {
+    const draft = {};
+    ['inputBarcode', 'inputName', 'inputCategory', 'inputExpiry', 'inputQty', 'inputAlertDays'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) draft[id] = el.value;
+    });
+    draft.image = currentCompressedImage;
+    localStorage.setItem(STORAGE_KEYS.FORM_DRAFT, JSON.stringify(draft));
+}
+
+function restoreFormDraft() {
+    try {
+        const draft = JSON.parse(localStorage.getItem(STORAGE_KEYS.FORM_DRAFT) || '{}');
+        if (draft.inputBarcode) document.getElementById('inputBarcode').value = draft.inputBarcode;
+        if (draft.inputName) document.getElementById('inputName').value = draft.inputName;
+        if (draft.inputCategory) document.getElementById('inputCategory').value = draft.inputCategory;
+        if (draft.inputExpiry) document.getElementById('inputExpiry').value = draft.inputExpiry;
+        if (draft.inputQty) document.getElementById('inputQty').value = draft.inputQty;
+        if (draft.inputAlertDays) document.getElementById('inputAlertDays').value = draft.inputAlertDays;
+        if (draft.image) setPreviewImage(draft.image);
+        updateDaysPreview();
+        return Object.keys(draft).length > 0 && draft.inputName;
+    } catch (e) { return false; }
+}
+
+function clearFormDraft() {
+    localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT);
+}
+
+// ==========================================
+// Data Loading
+// ==========================================
+function loadData() {
+    try {
+        const savedBatches = localStorage.getItem(STORAGE_KEYS.BATCHES);
+        const savedCatalog = localStorage.getItem(STORAGE_KEYS.CATALOG);
+        const isInitialized = localStorage.getItem(STORAGE_KEYS.INIT);
+
+        if (savedBatches) batches = JSON.parse(savedBatches);
+        if (savedCatalog) catalog = JSON.parse(savedCatalog);
+
+        if (!isInitialized && batches.length === 0) {
+            const today = new Date();
+            const formatDate = (offsetDays) => {
+                const d = new Date(today);
+                d.setDate(d.getDate() + offsetDays);
+                return d.toISOString().split('T')[0];
+            };
+
+            const sampleProducts = [
+                { id: 'demo-1', barcode: '6281007041123', name: 'لبنة طازجة كاملة الدسم 400غ', category: 'dairy', expiryDate: formatDate(-2), qty: 4, alertDays: 4, image: '' },
+                { id: 'demo-2', barcode: '6223001360458', name: 'عصير مانجو طبيعي 1 لتر', category: 'drinks', expiryDate: formatDate(5), qty: 9, alertDays: 7, image: '' },
+                { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '' }
+            ];
+
+            batches = sampleProducts;
+            sampleProducts.forEach(p => {
+                catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays };
+            });
+
+            saveData();
+            localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(t('readError'), 'error');
+    }
+}
+
+function saveData() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
+        localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(catalog));
+    } catch (err) {
+        showToast(t('storageError'), 'error');
+    }
+}
+
+// ==========================================
+// Expiry Logic
+// ==========================================
+function getDaysRemaining(expiryDateStr) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const exp = new Date(expiryDateStr); exp.setHours(0,0,0,0);
+    return Math.ceil((exp - today) / (1000*60*60*24));
+}
+
+function getBatchStatus(batch) {
+    const days = getDaysRemaining(batch.expiryDate);
+    const alertThreshold = parseInt(batch.alertDays) || 7;
+
+    if (days < 0) {
+        return { key: 'expired', label: t('expiredSince', Math.abs(days)),
+            badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
+    } else if (days === 0) {
+        return { key: 'expired', label: t('expiresToday'),
+            badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
+    } else if (days <= alertThreshold) {
+        return { key: 'danger', label: t('daysLeft', days),
+            badgeBg: 'bg-orange-500 text-white', cardBorder: 'border-orange-400 border-2', cardBg: 'bg-orange-50/30', days };
+    } else if (days <= 30) {
+        return { key: 'warning', label: t('daysLeftShort', days),
+            badgeBg: 'bg-amber-400 text-slate-900', cardBorder: 'border-amber-300', cardBg: 'bg-white', days };
+    } else {
+        return { key: 'safe', label: t('daysLeftShort', days),
+            badgeBg: 'bg-emerald-100 text-emerald-800', cardBorder: 'border-slate-200', cardBg: 'bg-white', days };
+    }
+}
+
+// ==========================================
+// Category helpers
+// ==========================================
+const CATEGORY_LABELS = {
+    dairy: { ar: 'ألبان وأجبان', en: 'Dairy & Cheese', emoji: '🥛' },
+    canned: { ar: 'معلبات', en: 'Canned', emoji: '🥫' },
+    drinks: { ar: 'مشروبات', en: 'Drinks', emoji: '🧃' },
+    sweets: { ar: 'حلويات', en: 'Sweets', emoji: '🍫' },
+    frozen: { ar: 'مجمدات', en: 'Frozen', emoji: '❄️' },
+    other: { ar: 'أخرى', en: 'Other', emoji: '📦' }
+};
+
+function getCategoryLabel(catKey) {
+    const c = CATEGORY_LABELS[catKey];
+    if (!c) return catKey;
+    return `${c.emoji} ${c[currentLang]}`;
+}
+
+// ==========================================
+// Rendering
+// ==========================================
+function renderBatches() {
+    const listEl = document.getElementById('batchesList');
+    const emptyEl = document.getElementById('emptyState');
+    const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+    document.getElementById('clearSearchBtn').classList.toggle('hidden', searchQuery.length === 0);
+
+    let counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
+    const enriched = batches.map(b => {
+        const status = getBatchStatus(b);
+        counts[status.key]++;
+        return { ...b, status };
+    }).sort((a, b) => a.status.days - b.status.days);
+
+    document.getElementById('count-expired').textContent = counts.expired;
+    document.getElementById('count-danger').textContent = counts.danger;
+    document.getElementById('count-warning').textContent = counts.warning;
+    document.getElementById('count-safe').textContent = counts.safe;
+
+    const urgent = counts.expired + counts.danger;
+    const badge = document.getElementById('alertBadge');
+    if (urgent > 0) { badge.textContent = urgent; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+
+    const filtered = enriched.filter(item => {
+        const matchStatus = currentStatusFilter === 'all' || item.status.key === currentStatusFilter;
+        const matchCat = currentCategoryFilter === 'all' || item.category === currentCategoryFilter;
+        const matchSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery) || (item.barcode && item.barcode.toLowerCase().includes(searchQuery));
+        return matchStatus && matchCat && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+    emptyEl.classList.add('hidden');
+
+    listEl.innerHTML = filtered.map(item => {
+        const imgHtml = item.image
+            ? `<img src="${item.image}" alt="${item.name}" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100">`
+            : `<div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400"><i data-lucide="package" class="w-7 h-7"></i></div>`;
+        const barcodeHtml = item.barcode ? `<span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">${item.barcode}</span>` : '';
+        return `
+        <div class="${item.status.cardBg} ${item.status.cardBorder} border rounded-3xl p-3.5 shadow-xs transition">
+            <div class="flex gap-3">
+                ${imgHtml}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug truncate">${item.name}</h3>
+                        <span class="${item.status.badgeBg} text-[11px] font-extrabold px-2.5 py-1 rounded-xl whitespace-nowrap shrink-0">${item.status.label}</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span class="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">${getCategoryLabel(item.category)}</span>
+                        ${barcodeHtml}
+                    </div>
+                    <div class="mt-2 flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>${t('expiryDate')} <span dir="ltr" class="font-extrabold">${item.expiryDate}</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="updateBatchQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">-</button>
+                    <span class="px-2.5 text-xs font-extrabold text-slate-800">${t('qty')} ${item.qty}</span>
+                    <button onclick="updateBatchQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">+</button>
+                </div>
+                <button onclick="disposeBatch('${item.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                    <span>${t('dispose')}</span>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+function onSearchInput() { saveFilters(); renderBatches(); }
+
+function setStatusFilter(status, rerender = true) {
+    currentStatusFilter = status;
+    document.querySelectorAll('.status-pill').forEach(btn => {
+        if (btn.dataset.status === status) {
+            btn.classList.add('bg-slate-900', 'text-white');
+            btn.classList.remove('bg-white', 'text-red-600', 'text-orange-600', 'text-amber-600', 'text-emerald-600');
+        } else {
+            btn.classList.remove('bg-slate-900', 'text-white');
+            btn.classList.add('bg-white');
+            if (btn.dataset.status === 'expired') btn.classList.add('text-red-600');
+            if (btn.dataset.status === 'danger') btn.classList.add('text-orange-600');
+            if (btn.dataset.status === 'warning') btn.classList.add('text-amber-600');
+            if (btn.dataset.status === 'safe') btn.classList.add('text-emerald-600');
+        }
+    });
+    saveFilters();
+    if (rerender) renderBatches();
+}
+
+function setCategoryFilter(cat, rerender = true) {
+    currentCategoryFilter = cat;
+    document.querySelectorAll('.cat-pill').forEach(btn => {
+        if (btn.dataset.cat === cat) {
+            btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-800 text-white';
+        } else {
+            btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200';
+        }
+    });
+    saveFilters();
+    if (rerender) renderBatches();
+}
+
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    saveFilters();
+    renderBatches();
+}
+
+// ==========================================
+// Scanner
+// ==========================================
+function startScanner(mode) {
+    scannerMode = mode;
+    const modal = document.getElementById('scannerModal');
+    const errorEl = document.getElementById('scannerError');
+    errorEl.classList.add('hidden');
+    modal.classList.remove('hidden');
+    document.getElementById('scannerTitle').textContent = mode === 'search' ? t('scannerSearchTitle') : t('scannerAddTitle');
+
+    try {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+        html5QrcodeScanner.start({ facingMode: "environment" }, config,
+            (decodedText) => {
+                playBeep();
+                stopScanner();
+                if (scannerMode === 'search') {
+                    document.getElementById('searchInput').value = decodedText;
+                    saveFilters();
+                    renderBatches();
+                    showToast(t('searchSuccess', decodedText), 'success');
+                } else {
+                    document.getElementById('inputBarcode').value = decodedText;
+                    handleBarcodeLookup(decodedText);
+                    saveFormDraft();
+                }
+            },
+            () => {}
+        ).catch(() => {
+            errorEl.textContent = t('cameraError');
+            errorEl.classList.remove('hidden');
+        });
+    } catch (e) {
+        errorEl.textContent = t('cameraNotSupported');
+        errorEl.classList.remove('hidden');
+    }
+}
+
+function stopScanner() {
+    document.getElementById('scannerModal').classList.add('hidden');
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            html5QrcodeScanner.clear();
+            html5QrcodeScanner = null;
+        }).catch(() => { html5QrcodeScanner = null; });
+    }
+}
+
+// ==========================================
+// Catalog / Image
+// ==========================================
+function handleBarcodeLookup(barcode) {
+    const cleanCode = barcode.trim();
+    const banner = document.getElementById('autoFillBanner');
+    if (cleanCode && catalog[cleanCode]) {
+        const saved = catalog[cleanCode];
+        document.getElementById('inputName').value = saved.name || '';
+        document.getElementById('inputCategory').value = saved.category || 'other';
+        document.getElementById('inputAlertDays').value = saved.alertDays || 7;
+        if (saved.image) setPreviewImage(saved.image); else clearImage();
+        banner.classList.remove('hidden');
+        document.getElementById('inputExpiry').focus();
+    } else {
+        banner.classList.add('hidden');
+    }
+}
+
+function processImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const SIZE = 120;
+            canvas.width = SIZE; canvas.height = SIZE;
+            const ctx = canvas.getContext('2d');
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, SIZE, SIZE);
+            setPreviewImage(canvas.toDataURL('image/jpeg', 0.72));
+            saveFormDraft();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function setPreviewImage(dataUrl) {
+    currentCompressedImage = dataUrl;
+    document.getElementById('imagePreview').src = dataUrl;
+    document.getElementById('imagePreview').classList.remove('hidden');
+    document.getElementById('imagePlaceholder').classList.add('hidden');
+    document.getElementById('removeImgBtn').classList.remove('hidden');
+}
+
+function clearImage() {
+    currentCompressedImage = '';
+    document.getElementById('inputImage').value = '';
+    document.getElementById('imagePreview').classList.add('hidden');
+    document.getElementById('imagePlaceholder').classList.remove('hidden');
+    document.getElementById('removeImgBtn').classList.add('hidden');
+}
+
+// ==========================================
+// Form
+// ==========================================
+function openAddModal() {
+    document.getElementById('productForm').reset();
+    document.getElementById('autoFillBanner').classList.add('hidden');
+    document.getElementById('daysPreviewText').textContent = '';
+    clearImage();
+    const hasDraft = restoreFormDraft();
+    document.getElementById('addModal').classList.remove('hidden');
+    lucide.createIcons();
+    if (hasDraft) showToast(currentLang === 'ar' ? 'تم استعادة مسودتك السابقة' : 'Draft restored', 'success');
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+}
+
+function suggestAlertDays() {
+    const cat = document.getElementById('inputCategory').value;
+    const input = document.getElementById('inputAlertDays');
+    if (cat === 'dairy') input.value = 3;
+    else if (cat === 'canned') input.value = 15;
+    else if (cat === 'frozen') input.value = 10;
+    else input.value = 7;
+}
+
+function adjustFormQty(delta) {
+    const input = document.getElementById('inputQty');
+    input.value = Math.max(1, (parseInt(input.value) || 1) + delta);
+    saveFormDraft();
+}
+
+function updateDaysPreview() {
+    const val = document.getElementById('inputExpiry').value;
+    const label = document.getElementById('daysPreviewText');
+    if (!val) { label.textContent = ''; return; }
+    const days = getDaysRemaining(val);
+    if (days < 0) { label.textContent = t('expiredSinceShort', Math.abs(days)); label.className = 'text-xs font-extrabold text-red-600'; }
+    else if (days === 0) { label.textContent = t('expiresTodayShort'); label.className = 'text-xs font-extrabold text-red-600'; }
+    else { label.textContent = t('daysRemaining', days); label.className = 'text-xs font-extrabold text-emerald-700'; }
+}
+
+function saveBatch(e) {
+    e.preventDefault();
+    const barcode = document.getElementById('inputBarcode').value.trim();
+    const name = document.getElementById('inputName').value.trim();
+    const category = document.getElementById('inputCategory').value;
+    const expiryDate = document.getElementById('inputExpiry').value;
+    const qty = parseInt(document.getElementById('inputQty').value) || 1;
+    const alertDays = parseInt(document.getElementById('inputAlertDays').value) || 7;
+    if (!name || !expiryDate) return;
+
+    const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
+    batches.push(newBatch);
+
+    if (barcode) {
+        catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
+    }
+
+    saveData();
+    clearFormDraft();
+    closeAddModal();
+    renderBatches();
+    showToast(t('saveSuccess'), 'success');
+}
+
+function updateBatchQty(id, delta) {
+    const idx = batches.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    const newQty = batches[idx].qty + delta;
+    if (newQty <= 0) disposeBatch(id);
+    else { batches[idx].qty = newQty; saveData(); renderBatches(); }
+}
+
+function disposeBatch(id) {
+    const item = batches.find(b => b.id === id);
+    if (!item) return;
+    openConfirmDialog(t('disposeConfirmTitle'), t('disposeConfirmMsg', item.name), () => {
+        batches = batches.filter(b => b.id !== id);
+        saveData();
+        renderBatches();
+        showToast(t('removeSuccess'), 'success');
+    });
+}
+
+// ==========================================
+// Alerts
+// ==========================================
+function playBeep() {
+    try {
+        if (typeof Tone !== 'undefined') {
+            const synth = new Tone.Synth().toDestination();
+            synth.triggerAttackRelease("C6", "16n");
+        }
+    } catch (e) {}
+}
+
+function triggerAlertCheck(manualClick = false) {
+    let expiredCount = 0, dangerCount = 0;
+    batches.forEach(b => {
+        const st = getBatchStatus(b);
+        if (st.key === 'expired') expiredCount++;
+        else if (st.key === 'danger') dangerCount++;
+    });
+
+    if (manualClick) {
+        if (expiredCount === 0 && dangerCount === 0) { showToast(t('noAlerts'), 'success'); return; }
+        try {
+            Tone.start();
+            const synth = new Tone.Synth().toDestination();
+            const now = Tone.now();
+            synth.triggerAttackRelease("A5", "8n", now);
+            synth.triggerAttackRelease("E5", "8n", now + 0.18);
+        } catch (e) {}
+        const msg = t('alertMsg', expiredCount, dangerCount);
+        showToast(msg, 'warning');
+        if ("Notification" in window) {
+            if (Notification.permission === "granted") new Notification(t('appTitle'), { body: msg });
+            else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(p => { if (p === "granted") new Notification(t('appTitle'), { body: msg }); });
+            }
+        }
+    }
+}
+
+// ==========================================
+// Backup
+// ==========================================
+function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); }
+function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
+
+function exportData() {
+    const payload = { version: 1, exportedAt: new Date().toISOString(), batches, catalog };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
+    const a = document.createElement('a');
+    const dateTag = new Date().toISOString().split('T')[0];
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", `supermarket-expiry-backup-${dateTag}.json`);
+    document.body.appendChild(a); a.click(); a.remove();
+    showToast(t('exportSuccess'), 'success');
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (Array.isArray(imported.batches)) {
+                batches = imported.batches;
+                catalog = imported.catalog || {};
+                saveData();
+                renderBatches();
+                closeBackupModal();
+                showToast(t('importSuccess', batches.length), 'success');
+            } else showToast(t('importInvalid'), 'error');
+        } catch (err) { showToast(t('importError'), 'error'); }
+    };
+    reader.readAsText(file);
+}
+
+function requestClearAll() {
+    closeBackupModal();
+    openConfirmDialog(t('clearAllConfirmTitle'), t('clearAllConfirmMsg'), () => {
+        batches = []; catalog = {};
+        saveData(); renderBatches();
+        showToast(t('clearAllSuccess'), 'success');
+    });
+}
+
+// ==========================================
+// AI Assistant (Smart Local Analysis Engine)
+// ==========================================
+function openAIModal() {
+    document.getElementById('aiModal').classList.remove('hidden');
+    document.getElementById('aiContent').innerHTML = '';
+    lucide.createIcons();
+}
+
+function closeAIModal() { document.getElementById('aiModal').classList.add('hidden'); }
+
+function showAILoading(callback) {
+    const loader = document.getElementById('aiLoading');
+    loader.classList.remove('hidden');
+    document.getElementById('aiContent').innerHTML = '';
+    setTimeout(() => {
+        loader.classList.add('hidden');
+        callback();
+    }, 600);
+}
+
+function aiCard(icon, title, body, color = 'purple') {
+    return `
+    <div class="bg-${color}-50 border border-${color}-200 rounded-2xl p-4">
+        <div class="flex items-center gap-2 mb-2">
+            <i data-lucide="${icon}" class="w-5 h-5 text-${color}-600"></i>
+            <h4 class="font-extrabold text-${color}-900 text-sm">${title}</h4>
+        </div>
+        <div class="text-xs text-${color}-800 leading-relaxed font-semibold">${body}</div>
+    </div>`;
+}
+
+function runAIAnalysis() {
+    showAILoading(() => {
+        if (batches.length === 0) {
+            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAnalysisTitle'), t('aiNoData'), 'slate');
+            lucide.createIcons(); return;
+        }
+        const counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
+        let totalQty = 0;
+        const catCount = {};
+        batches.forEach(b => {
+            const st = getBatchStatus(b);
+            counts[st.key]++;
+            totalQty += b.qty;
+            catCount[b.category] = (catCount[b.category] || 0) + b.qty;
+        });
+        const riskRate = Math.round(((counts.expired + counts.danger) / batches.length) * 100);
+        const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
+        const html = `
+        ${aiCard('bar-chart-3', t('aiAnalysisTitle'), `
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
+                    <div class="text-lg font-extrabold text-purple-700">${batches.length}</div>
+                    <div class="text-[10px]">${t('aiTotal')}</div>
+                </div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
+                    <div class="text-lg font-extrabold text-purple-700">${totalQty}</div>
+                    <div class="text-[10px]">${t('aiTotalQty')}</div>
+                </div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
+                    <div class="text-lg font-extrabold text-purple-700">${Object.keys(catCount).length}</div>
+                    <div class="text-[10px]">${t('aiCategories')}</div>
+                </div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
+                    <div class="text-lg font-extrabold ${riskRate > 30 ? 'text-red-600' : 'text-emerald-600'}">${riskRate}%</div>
+                    <div class="text-[10px]">${t('aiRiskRate')}</div>
+                </div>
+            </div>
+            ${topCat ? `<p class="mt-2 text-[11px]">📦 ${getCategoryLabel(topCat[0])}: <b>${topCat[1]}</b></p>` : ''}
+        `, 'purple')}`;
+        document.getElementById('aiContent').innerHTML = html;
+        lucide.createIcons();
+    });
+}
+
+function runAIPriority() {
+    showAILoading(() => {
+        if (batches.length === 0) {
+            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiPriorityTitle'), t('aiNoData'), 'slate');
+            lucide.createIcons(); return;
+        }
+        const enriched = batches.map(b => ({ ...b, st: getBatchStatus(b) })).sort((a, b) => a.st.days - b.st.days);
+        const top5 = enriched.slice(0, 5);
+        const html = aiCard('list-ordered', t('aiPriorityTitle'), `
+            <div class="space-y-2">
+                ${top5.map((b, i) => `
+                    <div class="flex items-center gap-2 bg-white rounded-lg p-2 border border-indigo-100">
+                        <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-extrabold flex items-center justify-center">${i+1}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-indigo-900 truncate text-[11px]">${b.name}</div>
+                            <div class="text-[10px] text-indigo-600">${b.st.label} · ${t('qty')} ${b.qty}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `, 'indigo');
+        document.getElementById('aiContent').innerHTML = html;
+        lucide.createIcons();
+    });
+}
+
+function runAIReport() {
+    showAILoading(() => {
+        const counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
+        let totalQty = 0;
+        batches.forEach(b => { counts[getBatchStatus(b).key]++; totalQty += b.qty; });
+        const html = aiCard('file-text', t('aiReportTitle'), `
+            <table class="w-full text-[11px]">
+                <tr><td>🔴 ${t('statExpired')}</td><td class="text-right font-extrabold">${counts.expired}</td></tr>
+                <tr><td>🟠 ${t('statDanger')}</td><td class="text-right font-extrabold">${counts.danger}</td></tr>
+                <tr><td>🟡 ${t('statWarning')}</td><td class="text-right font-extrabold">${counts.warning}</td></tr>
+                <tr><td>🟢 ${t('statSafe')}</td><td class="text-right font-extrabold">${counts.safe}</td></tr>
+                <tr class="border-t border-emerald-200"><td class="pt-1">📦 ${t('aiTotalQty')}</td><td class="text-right font-extrabold pt-1">${totalQty}</td></tr>
+            </table>
+            <div class="mt-2 text-[10px] text-emerald-700">${new Date().toLocaleString(currentLang === 'ar' ? 'ar-EG' : 'en-US')}</div>
+        `, 'emerald');
+        document.getElementById('aiContent').innerHTML = html;
+        lucide.createIcons();
+    });
+}
+
+function runAIAdvice() {
+    showAILoading(() => {
+        if (batches.length === 0) {
+            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAdviceTitle'), t('aiNoData'), 'slate');
+            lucide.createIcons(); return;
+        }
+        const tips = [];
+        let expired = 0, danger = 0;
+        batches.forEach(b => { const k = getBatchStatus(b).key; if (k === 'expired') expired++; if (k === 'danger') danger++; });
+        if (expired > 0) tips.push(currentLang === 'ar' ? `🚨 أزل ${expired} منتج منتهي فوراً لتجنب الغرامات والمخاطر الصحية.` : `🚨 Remove ${expired} expired products immediately to avoid penalties and health risks.`);
+        if (danger > 0) tips.push(currentLang === 'ar' ? `⚡ ضع ${danger} منتج في منطقة عرض ترويجي لتصريفها قبل انتهاء صلاحيتها.` : `⚡ Place ${danger} items in a promotional display to sell before expiry.`);
+        if (expired === 0 && danger === 0) tips.push(currentLang === 'ar' ? '✅ وضعك ممتاز! استمر في المتابعة اليومية.' : '✅ Excellent! Continue daily monitoring.');
+        tips.push(currentLang === 'ar' ? '💾 لا تنسَ تصدير نسخة احتياطية أسبوعياً.' : '💾 Do not forget to export a weekly backup.');
+        if (batches.length > 20) tips.push(currentLang === 'ar' ? '📊 لديك مخزون كبير، فكر في تحليل الأنماط الأكثر مبيعاً.' : '📊 Large inventory, consider analyzing best-seller patterns.');
+        const html = aiCard('lightbulb', t('aiAdviceTitle'), `<ul class="space-y-1.5">${tips.map(tip => `<li>${tip}</li>`).join('')}</ul>`, 'amber');
+        document.getElementById('aiContent').innerHTML = html;
+        lucide.createIcons();
+    });
+}
+
+// ==========================================
+// Confirm Dialog
+// ==========================================
+function openConfirmDialog(title, message, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    confirmCallback = onConfirm;
+    document.getElementById('confirmDialog').classList.remove('hidden');
+}
+
+function closeConfirmDialog() {
+    document.getElementById('confirmDialog').classList.add('hidden');
+    confirmCallback = null;
+}
+
+document.getElementById('confirmYesBtn').onclick = function() {
+    if (confirmCallback) confirmCallback();
+    closeConfirmDialog();
+};
+
+// ==========================================
+// Toast
+// ==========================================
+function showToast(text, type = 'success') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toastIcon');
+    const textEl = document.getElementById('toastText');
+    icon.textContent = type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : '✅');
+    textEl.textContent = text;
+    toast.classList.remove('opacity-0', '-translate-y-2');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-2');
+    }, 3200);
+}
+
+// ==========================================
+// Auto-save on visibility change / beforeunload
+// ==========================================
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        saveData();
+        saveFilters();
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    saveData();
+    saveFilters();
+});
+</script>
+</body>
+</html>
