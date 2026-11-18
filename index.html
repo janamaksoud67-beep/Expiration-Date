@@ -20,10 +20,7 @@
             -webkit-tap-highlight-color: transparent;
             transition: background-color 0.3s, color 0.3s;
         }
-        body.dark {
-            background-color: #0f172a;
-            color: #e2e8f0;
-        }
+        body.dark { background-color: #0f172a; color: #e2e8f0; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         #reader video { border-radius: 0.75rem; object-fit: cover; }
@@ -33,7 +30,6 @@
         }
         .expired-pulse { animation: pulse-border 2s infinite; }
 
-        /* Dark mode adjustments */
         body.dark .bg-white { background-color: #1e293b !important; }
         body.dark .bg-slate-50 { background-color: #0f172a !important; }
         body.dark .bg-slate-100 { background-color: #1e293b !important; }
@@ -50,13 +46,8 @@
         body.dark .text-emerald-800 { color: #6ee7b7 !important; }
         body.dark .border-emerald-200 { border-color: #065f46 !important; }
 
-        .ai-glow {
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.2);
-        }
-        @keyframes ai-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
+        .ai-glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.2); }
+        @keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .ai-thinking { animation: ai-pulse 1s infinite; }
     </style>
 </head>
@@ -76,27 +67,30 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <!-- تبديل اللغة -->
-                <button onclick="toggleLanguage()" title="Language / اللغة" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95 text-xs font-extrabold text-emerald-400">
+                <button onclick="toggleLanguage()" title="Language" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95 text-xs font-extrabold text-emerald-400">
                     <span id="langLabel">EN</span>
                 </button>
-                <!-- تبديل الوضع الليلي -->
-                <button onclick="toggleTheme()" title="Theme / الوضع" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                <button onclick="toggleTheme()" title="Theme" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i id="themeIcon" data-lucide="moon" class="w-5 h-5 text-amber-400"></i>
                 </button>
-                <!-- AI -->
                 <button onclick="openAIModal()" title="AI Assistant" class="relative p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl transition active:scale-95">
                     <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
                 </button>
-                <!-- التنبيهات -->
                 <button onclick="triggerAlertCheck(true)" title="Alerts" class="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
                     <span id="alertBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
                 </button>
-                <!-- النسخ الاحتياطي -->
                 <button onclick="openBackupModal()" title="Backup" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i data-lucide="database-backup" class="w-5 h-5 text-sky-400"></i>
                 </button>
+            </div>
+        </div>
+
+        <!-- شريط المشاركة: رابط الموقع -->
+        <div id="shareBar" class="bg-emerald-900/40 border-t border-emerald-700/50 px-3 py-1.5">
+            <div class="max-w-3xl mx-auto flex items-center justify-between gap-2 text-[11px]">
+                <span class="text-emerald-200 font-bold truncate">🔗 <span data-i18n="shareSiteLabel">رابط الموقع:</span> <span id="siteUrlLabel" dir="ltr" class="font-mono">—</span></span>
+                <button onclick="copySiteUrl()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-extrabold px-2.5 py-1 rounded-lg active:scale-95 transition shrink-0" data-i18n="copyLink">نسخ الرابط</button>
             </div>
         </div>
 
@@ -125,10 +119,9 @@
 
     <main class="max-w-3xl mx-auto px-3 pt-4 space-y-4">
 
-        <!-- البحث -->
         <div class="flex gap-2">
             <div class="relative flex-1">
-                <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 rtl:right-3.5 rtl:left-auto ltr:left-3.5 ltr:right-auto"></i>
+                <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2"></i>
                 <input type="text" id="searchInput" oninput="onSearchInput()" data-i18n-placeholder="searchPlaceholder" placeholder="ابحث باسم الصنف أو الباركود..."
                     class="w-full bg-white border border-slate-300 rounded-2xl py-3 pr-11 pl-10 text-sm font-semibold focus:outline-none focus:border-slate-900 shadow-sm">
                 <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1">
@@ -140,7 +133,6 @@
             </button>
         </div>
 
-        <!-- فلاتر الحالة -->
         <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="statusFilters">
             <button data-status="all" onclick="setStatusFilter('all')" class="status-pill active-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-900 text-white shadow-sm" data-i18n="filterAll">الكل</button>
             <button data-status="expired" onclick="setStatusFilter('expired')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-red-600 border border-slate-200" data-i18n="filterExpired">🔴 منتهي الصلاحية</button>
@@ -149,7 +141,6 @@
             <button data-status="safe" onclick="setStatusFilter('safe')" class="status-pill px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-white text-emerald-600 border border-slate-200" data-i18n="filterSafe">🟢 سليم</button>
         </div>
 
-        <!-- فلاتر الأقسام -->
         <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="categoryFilters">
             <button data-cat="all" onclick="setCategoryFilter('all')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-200 text-slate-900" data-i18n="catAll">جميع الأقسام</button>
             <button data-cat="dairy" onclick="setCategoryFilter('dairy')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catDairy">🥛 ألبان وأجبان</button>
@@ -171,7 +162,6 @@
         </div>
     </main>
 
-    <!-- زر الإضافة العائم -->
     <div class="fixed bottom-5 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
         <button onclick="openAddModal()" class="pointer-events-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white font-extrabold text-base px-7 py-4 rounded-2xl shadow-xl shadow-emerald-900/25 flex items-center gap-3">
             <i data-lucide="plus-circle" class="w-6 h-6"></i>
@@ -313,7 +303,7 @@
             </div>
             <div class="p-5 space-y-4">
                 <p class="text-xs text-slate-600 leading-relaxed bg-slate-100 p-3 rounded-xl" data-i18n="backupInfo">
-                    يتم حفظ بياناتك وصور المنتجات محلياً على هذا الهاتف. ننصح بتصدير نسخة احتياطية كل أسبوع.
+                    يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.
                 </p>
 
                 <button onclick="exportData()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
@@ -326,6 +316,18 @@
                     <span data-i18n="importBtn">استعادة بيانات من ملف</span>
                     <input type="file" accept=".json" onchange="importData(event)" class="hidden">
                 </label>
+
+                <!-- زر جديد: تحميل البيانات المضمّنة -->
+                <button onclick="loadEmbeddedData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
+                    <i data-lucide="package-check" class="w-5 h-5"></i>
+                    <span data-i18n="loadEmbeddedBtn">تحميل البيانات المضمّنة في الملف</span>
+                </button>
+
+                <!-- زر جديد: نسخ رابط الموقع -->
+                <button onclick="copySiteUrl()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
+                    <i data-lucide="link" class="w-5 h-5"></i>
+                    <span data-i18n="copySiteUrlBtn">نسخ رابط الموقع للمشاركة</span>
+                </button>
 
                 <hr class="border-slate-200">
 
@@ -349,23 +351,19 @@
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-
             <div class="p-5 space-y-4">
                 <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
                     <p class="text-sm text-purple-900 font-semibold leading-relaxed" data-i18n="aiWelcome">
-                        👋 مرحباً! أنا مساعدك الذكي. سأحلل بيانات رفوفك وأقدم لك توصيات فورية.
+                        👋 مرحباً! أنا مساعدك الذكي.
                     </p>
                 </div>
-
                 <div id="aiLoading" class="hidden text-center py-6">
                     <div class="inline-flex items-center gap-2 text-purple-700 font-bold ai-thinking">
                         <i data-lucide="brain-circuit" class="w-6 h-6"></i>
                         <span data-i18n="aiThinking">جاري التحليل الذكي...</span>
                     </div>
                 </div>
-
                 <div id="aiContent" class="space-y-3"></div>
-
                 <div class="grid grid-cols-2 gap-2 pt-2">
                     <button onclick="runAIAnalysis()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition">
                         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
@@ -413,210 +411,161 @@
 
 <script>
 // ==========================================
+// 🔴 بياناتك المضمّنة — استبدلها ببياناتك الحقيقية
+// ==========================================
+// طريقة الحصول على بياناتك:
+// 1. افتح التطبيق على جهازك → اضغط زر النسخ الاحتياطي (🗄️)
+// 2. اضغط "تصدير نسخة احتياطية (JSON)" → سينزل ملف
+// 3. افتح الملف بـ Notepad → انسخ محتوى batches و catalog
+// 4. الصقهما هنا داخل EMBEDDED_DATA
+// ==========================================
+const EMBEDDED_DATA = {
+    version: 2,
+    exportedAt: "2025-01-01T00:00:00.000Z",
+    batches: [
+        // ⬇️ ضع هنا بيانات batches الحقيقية
+        // مثال:
+        // { "id": "batch-1", "barcode": "6281007041123", "name": "لبنة طازجة 400غ", "category": "dairy", "expiryDate": "2025-12-31", "qty": 4, "alertDays": 4, "image": "" }
+    ],
+    catalog: {
+        // ⬇️ ضع هنا بيانات catalog الحقيقية (مفتاحها الباركود)
+        // مثال:
+        // "6281007041123": { "name": "لبنة طازجة 400غ", "category": "dairy", "image": "", "alertDays": 4 }
+    }
+};
+
+// ==========================================
+// رابط الموقع المنشور (للمشاركة)
+// ==========================================
+// إذا رفعت الملف على GitHub Pages أو Netlify، ضع الرابط هنا.
+// مثال: "https://username.github.io/expiry-tracker/"
+const SITE_URL = ""; // اتركه فارغاً ليُكتشف تلقائياً من window.location
+
+// ==========================================
 // Translation Dictionary
 // ==========================================
 const I18N = {
     ar: {
-        appTitle: 'متتبع الصلاحية',
-        appSubtitle: 'إدارة رفوف السوبر ماركت',
-        searchPlaceholder: 'ابحث باسم الصنف أو الباركود...',
-        cameraSearch: 'بحث بالكاميرا',
-        filterAll: 'الكل',
-        filterExpired: '🔴 منتهي الصلاحية',
-        filterDanger: '🟠 خطر قريب',
-        filterWarning: '🟡 خلال 30 يوم',
-        filterSafe: '🟢 سليم',
-        catAll: 'جميع الأقسام',
-        catDairy: '🥛 ألبان وأجبان',
-        catCanned: '🥫 معلبات',
-        catDrinks: '🧃 مشروبات',
-        catSweets: '🍫 حلويات',
-        catFrozen: '❄️ مجمدات',
-        catOther: '📦 أخرى',
-        emptyTitle: 'لا توجد أصناف مطابقة',
-        emptySubtitle: 'اضغط على زر الإضافة بالأسفل لمسح باركود جديد',
-        addBtn: 'إضافة صنف / مسح باركود',
-        scannerTitle: 'وجّه الكاميرا نحو الباركود',
-        scannerSearchTitle: 'امسح باركود الصنف للبحث عنه',
-        scannerAddTitle: 'امسح باركود الصنف لإضافته',
+        appTitle: 'متتبع الصلاحية', appSubtitle: 'إدارة رفوف السوبر ماركت',
+        searchPlaceholder: 'ابحث باسم الصنف أو الباركود...', cameraSearch: 'بحث بالكاميرا',
+        filterAll: 'الكل', filterExpired: '🔴 منتهي الصلاحية', filterDanger: '🟠 خطر قريب',
+        filterWarning: '🟡 خلال 30 يوم', filterSafe: '🟢 سليم',
+        catAll: 'جميع الأقسام', catDairy: '🥛 ألبان وأجبان', catCanned: '🥫 معلبات',
+        catDrinks: '🧃 مشروبات', catSweets: '🍫 حلويات', catFrozen: '❄️ مجمدات', catOther: '📦 أخرى',
+        emptyTitle: 'لا توجد أصناف مطابقة', emptySubtitle: 'اضغط على زر الإضافة بالأسفل لمسح باركود جديد',
+        addBtn: 'إضافة صنف / مسح باركود', scannerTitle: 'وجّه الكاميرا نحو الباركود',
+        scannerSearchTitle: 'امسح باركود الصنف للبحث عنه', scannerAddTitle: 'امسح باركود الصنف لإضافته',
         closeCamera: 'إغلاق الكاميرا والإدخال يدوياً',
-        cameraError: 'تعذر الوصول للكاميرا. تأكد من إعطاء صلاحية الكاميرا للمتصفح أو استخدم الإدخال اليدوي.',
-        cameraNotSupported: 'المتصفح لا يدعم تشغيل الكاميرا مباشرة.',
+        cameraError: 'تعذر الوصول للكاميرا. تأكد من إعطاء صلاحية الكاميرا.', cameraNotSupported: 'المتصفح لا يدعم الكاميرا.',
         addModalTitle: 'تسجيل تاريخ صلاحية صنف',
         autoFillMsg: 'تم التعرف على المنتج تلقائياً! أدخل تاريخ الانتهاء الجديد والكمية فقط.',
-        barcodeLabel: 'رقم الباركود (اختياري أو بالمسح)',
-        barcodePlaceholder: 'امسح أو اكتب الرقم هنا...',
-        scanBtn: 'مسح',
-        photoLabel: 'صورة',
-        takePhoto: 'التقط',
-        removePhoto: 'حذف الصورة',
-        nameLabel: 'اسم الصنف *',
-        namePlaceholder: 'مثال: لبنة المراعي 400 غرام',
-        categoryLabel: 'القسم',
-        expiryLabel: 'تاريخ انتهاء الصلاحية *',
-        qtyLabel: 'الكمية على الرف',
-        alertDaysLabel: 'نبهني قبل (أيام)',
-        saveBtn: 'حفظ الصنف',
-        cancelBtn: 'إلغاء',
+        barcodeLabel: 'رقم الباركود (اختياري أو بالمسح)', barcodePlaceholder: 'امسح أو اكتب الرقم هنا...',
+        scanBtn: 'مسح', photoLabel: 'صورة', takePhoto: 'التقط', removePhoto: 'حذف الصورة',
+        nameLabel: 'اسم الصنف *', namePlaceholder: 'مثال: لبنة المراعي 400 غرام',
+        categoryLabel: 'القسم', expiryLabel: 'تاريخ انتهاء الصلاحية *',
+        qtyLabel: 'الكمية على الرف', alertDaysLabel: 'نبهني قبل (أيام)',
+        saveBtn: 'حفظ الصنف', cancelBtn: 'إلغاء',
         backupTitle: 'النسخ الاحتياطي وإدارة البيانات',
-        backupInfo: 'يتم حفظ بياناتك وصور المنتجات محلياً على هذا الهاتف. ننصح بتصدير نسخة احتياطية كل أسبوع لحماية البيانات عند تغيير الهاتف أو مسح بيانات المتصفح.',
-        exportBtn: 'تصدير نسخة احتياطية (JSON)',
-        importBtn: 'استعادة بيانات من ملف سابق',
+        backupInfo: 'يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.',
+        exportBtn: 'تصدير نسخة احتياطية (JSON)', importBtn: 'استعادة بيانات من ملف سابق',
         clearAllBtn: 'مسح جميع البيانات من التطبيق',
-        aiTitle: 'المساعد الذكي',
-        aiWelcome: '👋 مرحباً! أنا مساعدك الذكي. سأحلل بيانات رفوفك وأقدم لك توصيات فورية.',
-        aiThinking: 'جاري التحليل الذكي...',
-        aiAnalyzeBtn: 'تحليل البيانات',
-        aiPriorityBtn: 'أولويات العمل',
-        aiReportBtn: 'تقرير شامل',
-        aiAdviceBtn: 'نصائح ذكية',
+        loadEmbeddedBtn: 'تحميل البيانات المضمّنة في الملف',
+        copySiteUrlBtn: 'نسخ رابط الموقع للمشاركة',
+        copyLink: 'نسخ الرابط',
+        shareSiteLabel: 'رابط الموقع:',
+        siteUrlCopied: 'تم نسخ رابط الموقع!',
+        siteUrlEmpty: 'لم يتم تعيين رابط الموقع. ارفع الملف على استضافة أولاً.',
+        embeddedLoaded: (n) => `تم تحميل ${n} صنف من البيانات المضمّنة!`,
+        embeddedEmpty: 'لا توجد بيانات مضمّنة في الملف.',
+        aiTitle: 'المساعد الذكي', aiWelcome: '👋 مرحباً! أنا مساعدك الذكي.',
+        aiThinking: 'جاري التحليل الذكي...', aiAnalyzeBtn: 'تحليل البيانات',
+        aiPriorityBtn: 'أولويات العمل', aiReportBtn: 'تقرير شامل', aiAdviceBtn: 'نصائح ذكية',
         confirmYes: 'نعم، متأكد',
-        statExpired: 'منتهي',
-        statDanger: 'خطر قريب',
-        statWarning: 'مراقبة',
-        statSafe: 'سليم',
-        // Dynamic
-        expiredSince: (d) => `منتهي منذ ${d} يوم`,
-        expiresToday: 'ينتهي اليوم!',
+        statExpired: 'منتهي', statDanger: 'خطر قريب', statWarning: 'مراقبة', statSafe: 'سليم',
+        expiredSince: (d) => `منتهي منذ ${d} يوم`, expiresToday: 'ينتهي اليوم!',
         daysLeft: (d) => d === 1 ? 'باقي يوم واحد!' : `باقي ${d} أيام`,
-        daysLeftShort: (d) => `باقي ${d} يوم`,
-        expiryDate: 'ينتهي في:',
-        qty: 'الكمية:',
-        dispose: 'تم التصريف',
-        disposeConfirmTitle: 'تم تصريف الكمية؟',
-        disposeConfirmMsg: (name) => `هل تريد إزالة "${name}" من قائمة المتابعة (تم بيعه بالكامل أو سحبه من الرف)؟`,
-        saveSuccess: 'تم حفظ الصنف بنجاح على الرف',
-        removeSuccess: 'تمت إزالة الدفعة من القائمة',
-        clearAllConfirmTitle: 'مسح جميع البيانات؟',
-        clearAllConfirmMsg: 'سيتم حذف كافة المنتجات والصور المسجلة نهائياً من هذا الهاتف. هل أنت متأكد؟',
-        clearAllSuccess: 'تم مسح جميع البيانات',
-        exportSuccess: 'تم تنزيل ملف النسخة الاحتياطية بنجاح',
-        importSuccess: (n) => `تمت استعادة ${n} صنف بنجاح!`,
-        importInvalid: 'صيغة الملف غير صالحة',
-        importError: 'فشل قراءة الملف، تأكد أنه ملف نسخة احتياطية صحيح',
-        noAlerts: 'ممتاز! لا توجد أصناف منتهية أو في منطقة الخطر حالياً.',
-        alertMsg: (e, d) => `تنبيه: لديك ${e} صنف منتهي الصلاحية، و ${d} صنف قريب الانتهاء!`,
-        storageError: 'الذاكرة ممتلئة! يرجى تصدير نسخة احتياطية وحذف الأصناف القديمة.',
-        readError: 'حدث خطأ في قراءة الذاكرة المحلية',
+        daysLeftShort: (d) => `باقي ${d} يوم`, expiryDate: 'ينتهي في:', qty: 'الكمية:',
+        dispose: 'تم التصريف', disposeConfirmTitle: 'تم تصريف الكمية؟',
+        disposeConfirmMsg: (name) => `هل تريد إزالة "${name}" من قائمة المتابعة؟`,
+        saveSuccess: 'تم حفظ الصنف بنجاح على الرف', removeSuccess: 'تمت إزالة الدفعة من القائمة',
+        clearAllConfirmTitle: 'مسح جميع البيانات؟', clearAllConfirmMsg: 'سيتم حذف كافة المنتجات نهائياً. هل أنت متأكد؟',
+        clearAllSuccess: 'تم مسح جميع البيانات', exportSuccess: 'تم تنزيل ملف النسخة الاحتياطية بنجاح',
+        importSuccess: (n) => `تمت استعادة ${n} صنف بنجاح!`, importInvalid: 'صيغة الملف غير صالحة',
+        importError: 'فشل قراءة الملف.', noAlerts: 'ممتاز! لا توجد أصناف منتهية أو في منطقة الخطر.',
+        alertMsg: (e, d) => `تنبيه: لديك ${e} صنف منتهي، و ${d} قريب الانتهاء!`,
+        storageError: 'الذاكرة ممتلئة!', readError: 'حدث خطأ في قراءة الذاكرة المحلية',
         searchSuccess: (code) => `تم البحث عن الباركود: ${code}`,
-        daysRemaining: (d) => `متبقي ${d} يوم`,
-        expiredSinceShort: (d) => `⚠️ منتهي منذ ${d} يوم`,
+        daysRemaining: (d) => `متبقي ${d} يوم`, expiredSinceShort: (d) => `⚠️ منتهي منذ ${d} يوم`,
         expiresTodayShort: '⚠️ ينتهي اليوم',
-        // AI
-        aiAnalysisTitle: '📊 تحليل البيانات',
-        aiPriorityTitle: '🎯 أولويات العمل',
-        aiReportTitle: '📋 تقرير شامل',
-        aiAdviceTitle: '💡 نصائح ذكية',
-        aiNoData: 'لا توجد بيانات كافية للتحليل. أضف بعض المنتجات أولاً.',
-        aiHealthy: '✅ وضعك ممتاز! جميع المنتجات في حالة سليمة.',
-        aiTotal: 'إجمالي الأصناف',
-        aiTotalQty: 'إجمالي الكميات',
-        aiCategories: 'الأقسام',
-        aiRiskRate: 'نسبة المخاطر',
-        aiActionRequired: 'إجراء مطلوب فوراً',
-        aiActionSoon: 'إجراء قريب',
-        aiActionMonitor: 'مراقبة',
-        aiActionOk: 'سليم',
+        aiAnalysisTitle: '📊 تحليل البيانات', aiPriorityTitle: '🎯 أولويات العمل',
+        aiReportTitle: '📋 تقرير شامل', aiAdviceTitle: '💡 نصائح ذكية',
+        aiNoData: 'لا توجد بيانات كافية للتحليل.', aiHealthy: '✅ وضعك ممتاز!',
+        aiTotal: 'إجمالي الأصناف', aiTotalQty: 'إجمالي الكميات',
+        aiCategories: 'الأقسام', aiRiskRate: 'نسبة المخاطر',
+        aiActionRequired: 'إجراء مطلوب فوراً', aiActionSoon: 'إجراء قريب',
+        aiActionMonitor: 'مراقبة', aiActionOk: 'سليم',
+        draftRestored: 'تم استعادة مسودتك السابقة'
     },
     en: {
-        appTitle: 'Expiry Tracker',
-        appSubtitle: 'Supermarket Shelf Management',
-        searchPlaceholder: 'Search by name or barcode...',
-        cameraSearch: 'Camera Search',
-        filterAll: 'All',
-        filterExpired: '🔴 Expired',
-        filterDanger: '🟠 Near Danger',
-        filterWarning: '🟡 Within 30 days',
-        filterSafe: '🟢 Safe',
-        catAll: 'All Categories',
-        catDairy: '🥛 Dairy & Cheese',
-        catCanned: '🥫 Canned',
-        catDrinks: '🧃 Drinks',
-        catSweets: '🍫 Sweets',
-        catFrozen: '❄️ Frozen',
-        catOther: '📦 Other',
-        emptyTitle: 'No matching items',
-        emptySubtitle: 'Tap the add button below to scan a new barcode',
-        addBtn: 'Add Item / Scan Barcode',
-        scannerTitle: 'Point camera at barcode',
-        scannerSearchTitle: 'Scan barcode to search',
-        scannerAddTitle: 'Scan barcode to add item',
+        appTitle: 'Expiry Tracker', appSubtitle: 'Supermarket Shelf Management',
+        searchPlaceholder: 'Search by name or barcode...', cameraSearch: 'Camera Search',
+        filterAll: 'All', filterExpired: '🔴 Expired', filterDanger: '🟠 Near Danger',
+        filterWarning: '🟡 Within 30 days', filterSafe: '🟢 Safe',
+        catAll: 'All Categories', catDairy: '🥛 Dairy & Cheese', catCanned: '🥫 Canned',
+        catDrinks: '🧃 Drinks', catSweets: '🍫 Sweets', catFrozen: '❄️ Frozen', catOther: '📦 Other',
+        emptyTitle: 'No matching items', emptySubtitle: 'Tap the add button below to scan a new barcode',
+        addBtn: 'Add Item / Scan Barcode', scannerTitle: 'Point camera at barcode',
+        scannerSearchTitle: 'Scan barcode to search', scannerAddTitle: 'Scan barcode to add item',
         closeCamera: 'Close camera & enter manually',
-        cameraError: 'Cannot access camera. Please grant camera permission or use manual input.',
-        cameraNotSupported: 'Browser does not support camera.',
+        cameraError: 'Cannot access camera. Please grant camera permission.', cameraNotSupported: 'Browser does not support camera.',
         addModalTitle: 'Register Product Expiry',
         autoFillMsg: 'Product recognized automatically! Just enter new expiry date and quantity.',
-        barcodeLabel: 'Barcode (optional or scan)',
-        barcodePlaceholder: 'Scan or type barcode here...',
-        scanBtn: 'Scan',
-        photoLabel: 'Photo',
-        takePhoto: 'Take',
-        removePhoto: 'Remove Photo',
-        nameLabel: 'Product Name *',
-        namePlaceholder: 'e.g. Almarai Labneh 400g',
-        categoryLabel: 'Category',
-        expiryLabel: 'Expiry Date *',
-        qtyLabel: 'Shelf Quantity',
-        alertDaysLabel: 'Alert before (days)',
-        saveBtn: 'Save Product',
-        cancelBtn: 'Cancel',
+        barcodeLabel: 'Barcode (optional or scan)', barcodePlaceholder: 'Scan or type barcode here...',
+        scanBtn: 'Scan', photoLabel: 'Photo', takePhoto: 'Take', removePhoto: 'Remove Photo',
+        nameLabel: 'Product Name *', namePlaceholder: 'e.g. Almarai Labneh 400g',
+        categoryLabel: 'Category', expiryLabel: 'Expiry Date *',
+        qtyLabel: 'Shelf Quantity', alertDaysLabel: 'Alert before (days)',
+        saveBtn: 'Save Product', cancelBtn: 'Cancel',
         backupTitle: 'Backup & Data Management',
-        backupInfo: 'Your data and product images are stored locally on this phone. We recommend exporting a backup weekly to protect data when changing phones or clearing browser data.',
-        exportBtn: 'Export Backup (JSON)',
-        importBtn: 'Restore from File',
+        backupInfo: 'Your data is stored locally. We recommend exporting a backup weekly.',
+        exportBtn: 'Export Backup (JSON)', importBtn: 'Restore from File',
         clearAllBtn: 'Clear All Data',
-        aiTitle: 'AI Assistant',
-        aiWelcome: '👋 Hello! I am your smart assistant. I will analyze your shelf data and provide instant recommendations.',
-        aiThinking: 'AI analyzing...',
-        aiAnalyzeBtn: 'Analyze Data',
-        aiPriorityBtn: 'Work Priorities',
-        aiReportBtn: 'Full Report',
-        aiAdviceBtn: 'Smart Tips',
+        loadEmbeddedBtn: 'Load Embedded Data from File',
+        copySiteUrlBtn: 'Copy Site URL for Sharing',
+        copyLink: 'Copy Link',
+        shareSiteLabel: 'Site URL:',
+        siteUrlCopied: 'Site URL copied!',
+        siteUrlEmpty: 'No site URL set. Host the file first.',
+        embeddedLoaded: (n) => `Loaded ${n} items from embedded data!`,
+        embeddedEmpty: 'No embedded data in file.',
+        aiTitle: 'AI Assistant', aiWelcome: '👋 Hello! I am your smart assistant.',
+        aiThinking: 'AI analyzing...', aiAnalyzeBtn: 'Analyze Data',
+        aiPriorityBtn: 'Work Priorities', aiReportBtn: 'Full Report', aiAdviceBtn: 'Smart Tips',
         confirmYes: 'Yes, Confirm',
-        statExpired: 'Expired',
-        statDanger: 'Near Danger',
-        statWarning: 'Monitor',
-        statSafe: 'Safe',
-        expiredSince: (d) => `Expired ${d}d ago`,
-        expiresToday: 'Expires today!',
+        statExpired: 'Expired', statDanger: 'Near Danger', statWarning: 'Monitor', statSafe: 'Safe',
+        expiredSince: (d) => `Expired ${d}d ago`, expiresToday: 'Expires today!',
         daysLeft: (d) => d === 1 ? '1 day left!' : `${d} days left`,
-        daysLeftShort: (d) => `${d}d left`,
-        expiryDate: 'Expires:',
-        qty: 'Qty:',
-        dispose: 'Disposed',
-        disposeConfirmTitle: 'Dispose quantity?',
-        disposeConfirmMsg: (name) => `Remove "${name}" from tracking (sold out or pulled from shelf)?`,
-        saveSuccess: 'Product saved successfully',
-        removeSuccess: 'Batch removed from list',
-        clearAllConfirmTitle: 'Clear all data?',
-        clearAllConfirmMsg: 'All products and images will be permanently deleted from this phone. Are you sure?',
-        clearAllSuccess: 'All data cleared',
-        exportSuccess: 'Backup file downloaded successfully',
-        importSuccess: (n) => `Restored ${n} items successfully!`,
-        importInvalid: 'Invalid file format',
-        importError: 'Failed to read file, ensure it is a valid backup file',
-        noAlerts: 'Great! No expired or near-danger items currently.',
+        daysLeftShort: (d) => `${d}d left`, expiryDate: 'Expires:', qty: 'Qty:',
+        dispose: 'Disposed', disposeConfirmTitle: 'Dispose quantity?',
+        disposeConfirmMsg: (name) => `Remove "${name}" from tracking?`,
+        saveSuccess: 'Product saved successfully', removeSuccess: 'Batch removed from list',
+        clearAllConfirmTitle: 'Clear all data?', clearAllConfirmMsg: 'All products will be permanently deleted. Are you sure?',
+        clearAllSuccess: 'All data cleared', exportSuccess: 'Backup file downloaded successfully',
+        importSuccess: (n) => `Restored ${n} items successfully!`, importInvalid: 'Invalid file format',
+        importError: 'Failed to read file.', noAlerts: 'Great! No expired or near-danger items.',
         alertMsg: (e, d) => `Alert: You have ${e} expired and ${d} near-expiry items!`,
-        storageError: 'Storage full! Please export backup and delete old items.',
-        readError: 'Error reading local storage',
+        storageError: 'Storage full!', readError: 'Error reading local storage',
         searchSuccess: (code) => `Searched for barcode: ${code}`,
-        daysRemaining: (d) => `${d} days remaining`,
-        expiredSinceShort: (d) => `⚠️ Expired ${d}d ago`,
+        daysRemaining: (d) => `${d} days remaining`, expiredSinceShort: (d) => `⚠️ Expired ${d}d ago`,
         expiresTodayShort: '⚠️ Expires today',
-        aiAnalysisTitle: '📊 Data Analysis',
-        aiPriorityTitle: '🎯 Work Priorities',
-        aiReportTitle: '📋 Full Report',
-        aiAdviceTitle: '💡 Smart Tips',
-        aiNoData: 'Not enough data for analysis. Add some products first.',
-        aiHealthy: '✅ Excellent! All products are in good condition.',
-        aiTotal: 'Total Items',
-        aiTotalQty: 'Total Quantities',
-        aiCategories: 'Categories',
-        aiRiskRate: 'Risk Rate',
-        aiActionRequired: 'Action Required Now',
-        aiActionSoon: 'Action Soon',
-        aiActionMonitor: 'Monitor',
-        aiActionOk: 'Safe',
+        aiAnalysisTitle: '📊 Data Analysis', aiPriorityTitle: '🎯 Work Priorities',
+        aiReportTitle: '📋 Full Report', aiAdviceTitle: '💡 Smart Tips',
+        aiNoData: 'Not enough data for analysis.', aiHealthy: '✅ Excellent!',
+        aiTotal: 'Total Items', aiTotalQty: 'Total Quantities',
+        aiCategories: 'Categories', aiRiskRate: 'Risk Rate',
+        aiActionRequired: 'Action Required Now', aiActionSoon: 'Action Soon',
+        aiActionMonitor: 'Monitor', aiActionOk: 'Safe',
+        draftRestored: 'Draft restored'
     }
 };
 
@@ -624,26 +573,17 @@ const I18N = {
 // State
 // ==========================================
 const STORAGE_KEYS = {
-    BATCHES: 'sm_expiry_batches_v1',
-    CATALOG: 'sm_product_catalog_v1',
-    INIT: 'sm_initialized_v1',
-    LANG: 'sm_lang',
-    THEME: 'sm_theme',
-    FILTERS: 'sm_filters',
-    FORM_DRAFT: 'sm_form_draft'
+    BATCHES: 'sm_expiry_batches_v1', CATALOG: 'sm_product_catalog_v1',
+    INIT: 'sm_initialized_v1', LANG: 'sm_lang', THEME: 'sm_theme',
+    FILTERS: 'sm_filters', FORM_DRAFT: 'sm_form_draft'
 };
 
-let batches = [];
-let catalog = {};
-let currentStatusFilter = 'all';
-let currentCategoryFilter = 'all';
+let batches = [], catalog = {};
+let currentStatusFilter = 'all', currentCategoryFilter = 'all';
 let currentCompressedImage = '';
-let html5QrcodeScanner = null;
-let scannerMode = 'form';
-let currentLang = 'ar';
-let currentTheme = 'light';
-let confirmCallback = null;
-let toastTimeout;
+let html5QrcodeScanner = null, scannerMode = 'form';
+let currentLang = 'ar', currentTheme = 'light';
+let confirmCallback = null, toastTimeout;
 
 function t(key, ...args) {
     const dict = I18N[currentLang] || I18N.ar;
@@ -661,6 +601,7 @@ window.onload = function() {
     applyLanguage();
     applyTheme();
     restoreFilters();
+    updateSiteUrlLabel();
     lucide.createIcons();
     renderBatches();
     triggerAlertCheck(false);
@@ -668,7 +609,46 @@ window.onload = function() {
 };
 
 // ==========================================
-// Preferences (Lang / Theme)
+// Site URL
+// ==========================================
+function getSiteUrl() {
+    if (SITE_URL && SITE_URL.trim()) return SITE_URL.trim();
+    try {
+        if (window.location.protocol.startsWith('http')) {
+            return window.location.origin + window.location.pathname;
+        }
+    } catch (e) {}
+    return '';
+}
+
+function updateSiteUrlLabel() {
+    const el = document.getElementById('siteUrlLabel');
+    if (!el) return;
+    const url = getSiteUrl();
+    el.textContent = url || '—';
+    el.title = url || '';
+}
+
+function copySiteUrl() {
+    const url = getSiteUrl();
+    if (!url) { showToast(t('siteUrlEmpty'), 'warning'); return; }
+    copyToClipboard(url).then(() => showToast(t('siteUrlCopied'), 'success'))
+        .catch(() => showToast(t('siteUrlCopied'), 'warning'));
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); resolve(); } catch (e) { reject(e); }
+        document.body.removeChild(ta);
+    });
+}
+
+// ==========================================
+// Preferences
 // ==========================================
 function loadPreferences() {
     currentLang = localStorage.getItem(STORAGE_KEYS.LANG) || 'ar';
@@ -721,7 +701,7 @@ function toggleTheme() {
 }
 
 // ==========================================
-// Filters Persistence
+// Filters
 // ==========================================
 function restoreFilters() {
     try {
@@ -736,29 +716,24 @@ function restoreFilters() {
 
 function saveFilters() {
     localStorage.setItem(STORAGE_KEYS.FILTERS, JSON.stringify({
-        status: currentStatusFilter,
-        category: currentCategoryFilter,
+        status: currentStatusFilter, category: currentCategoryFilter,
         search: document.getElementById('searchInput').value
     }));
 }
 
 // ==========================================
-// Form Draft (Auto-save inputs)
+// Form Draft
 // ==========================================
 function bindFormDraft() {
-    const fields = ['inputBarcode', 'inputName', 'inputCategory', 'inputExpiry', 'inputQty', 'inputAlertDays'];
-    fields.forEach(id => {
+    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('input', saveFormDraft);
-            el.addEventListener('change', saveFormDraft);
-        }
+        if (el) { el.addEventListener('input', saveFormDraft); el.addEventListener('change', saveFormDraft); }
     });
 }
 
 function saveFormDraft() {
     const draft = {};
-    ['inputBarcode', 'inputName', 'inputCategory', 'inputExpiry', 'inputQty', 'inputAlertDays'].forEach(id => {
+    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
         const el = document.getElementById(id);
         if (el) draft[id] = el.value;
     });
@@ -781,12 +756,10 @@ function restoreFormDraft() {
     } catch (e) { return false; }
 }
 
-function clearFormDraft() {
-    localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT);
-}
+function clearFormDraft() { localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT); }
 
 // ==========================================
-// Data Loading
+// Data Loading — 🔴 المفتاح الأساسي للتعديل
 // ==========================================
 function loadData() {
     try {
@@ -797,25 +770,31 @@ function loadData() {
         if (savedBatches) batches = JSON.parse(savedBatches);
         if (savedCatalog) catalog = JSON.parse(savedCatalog);
 
+        // أول فتح على أي جهاز → حمّل البيانات المضمّنة من الملف
         if (!isInitialized && batches.length === 0) {
-            const today = new Date();
-            const formatDate = (offsetDays) => {
-                const d = new Date(today);
-                d.setDate(d.getDate() + offsetDays);
-                return d.toISOString().split('T')[0];
-            };
-
-            const sampleProducts = [
-                { id: 'demo-1', barcode: '6281007041123', name: 'لبنة طازجة كاملة الدسم 400غ', category: 'dairy', expiryDate: formatDate(-2), qty: 4, alertDays: 4, image: '' },
-                { id: 'demo-2', barcode: '6223001360458', name: 'عصير مانجو طبيعي 1 لتر', category: 'drinks', expiryDate: formatDate(5), qty: 9, alertDays: 7, image: '' },
-                { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '' }
-            ];
-
-            batches = sampleProducts;
-            sampleProducts.forEach(p => {
-                catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays };
-            });
-
+            if (EMBEDDED_DATA && Array.isArray(EMBEDDED_DATA.batches) && EMBEDDED_DATA.batches.length > 0) {
+                // تحميل البيانات المضمّنة (نسخة عميقة)
+                batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
+                catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
+                console.log('✅ Loaded embedded data:', batches.length, 'batches');
+            } else {
+                // لا توجد بيانات مضمّنة → استخدم المنتجات التجريبية
+                const today = new Date();
+                const formatDate = (offsetDays) => {
+                    const d = new Date(today);
+                    d.setDate(d.getDate() + offsetDays);
+                    return d.toISOString().split('T')[0];
+                };
+                const sampleProducts = [
+                    { id: 'demo-1', barcode: '6281007041123', name: 'لبنة طازجة كاملة الدسم 400غ', category: 'dairy', expiryDate: formatDate(-2), qty: 4, alertDays: 4, image: '' },
+                    { id: 'demo-2', barcode: '6223001360458', name: 'عصير مانجو طبيعي 1 لتر', category: 'drinks', expiryDate: formatDate(5), qty: 9, alertDays: 7, image: '' },
+                    { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '' }
+                ];
+                batches = sampleProducts;
+                sampleProducts.forEach(p => {
+                    catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays };
+                });
+            }
             saveData();
             localStorage.setItem(STORAGE_KEYS.INIT, 'true');
         }
@@ -825,13 +804,34 @@ function loadData() {
     }
 }
 
+// زر تحميل البيانات المضمّنة يدوياً
+function loadEmbeddedData() {
+    if (!EMBEDDED_DATA || !Array.isArray(EMBEDDED_DATA.batches) || EMBEDDED_DATA.batches.length === 0) {
+        showToast(t('embeddedEmpty'), 'warning');
+        return;
+    }
+    openConfirmDialog(
+        currentLang === 'ar' ? 'تحميل البيانات المضمّنة؟' : 'Load embedded data?',
+        currentLang === 'ar'
+            ? `سيتم استبدال البيانات الحالية بـ ${EMBEDDED_DATA.batches.length} صنف من الملف. هل أنت متأكد؟`
+            : `Current data will be replaced with ${EMBEDDED_DATA.batches.length} items from the file. Continue?`,
+        () => {
+            batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
+            catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
+            saveData();
+            localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+            renderBatches();
+            closeBackupModal();
+            showToast(t('embeddedLoaded', batches.length), 'success');
+        }
+    );
+}
+
 function saveData() {
     try {
         localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
         localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(catalog));
-    } catch (err) {
-        showToast(t('storageError'), 'error');
-    }
+    } catch (err) { showToast(t('storageError'), 'error'); }
 }
 
 // ==========================================
@@ -846,28 +846,13 @@ function getDaysRemaining(expiryDateStr) {
 function getBatchStatus(batch) {
     const days = getDaysRemaining(batch.expiryDate);
     const alertThreshold = parseInt(batch.alertDays) || 7;
-
-    if (days < 0) {
-        return { key: 'expired', label: t('expiredSince', Math.abs(days)),
-            badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
-    } else if (days === 0) {
-        return { key: 'expired', label: t('expiresToday'),
-            badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
-    } else if (days <= alertThreshold) {
-        return { key: 'danger', label: t('daysLeft', days),
-            badgeBg: 'bg-orange-500 text-white', cardBorder: 'border-orange-400 border-2', cardBg: 'bg-orange-50/30', days };
-    } else if (days <= 30) {
-        return { key: 'warning', label: t('daysLeftShort', days),
-            badgeBg: 'bg-amber-400 text-slate-900', cardBorder: 'border-amber-300', cardBg: 'bg-white', days };
-    } else {
-        return { key: 'safe', label: t('daysLeftShort', days),
-            badgeBg: 'bg-emerald-100 text-emerald-800', cardBorder: 'border-slate-200', cardBg: 'bg-white', days };
-    }
+    if (days < 0) return { key: 'expired', label: t('expiredSince', Math.abs(days)), badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
+    if (days === 0) return { key: 'expired', label: t('expiresToday'), badgeBg: 'bg-red-600 text-white', cardBorder: 'border-red-500 border-2 expired-pulse', cardBg: 'bg-red-50/40', days };
+    if (days <= alertThreshold) return { key: 'danger', label: t('daysLeft', days), badgeBg: 'bg-orange-500 text-white', cardBorder: 'border-orange-400 border-2', cardBg: 'bg-orange-50/30', days };
+    if (days <= 30) return { key: 'warning', label: t('daysLeftShort', days), badgeBg: 'bg-amber-400 text-slate-900', cardBorder: 'border-amber-300', cardBg: 'bg-white', days };
+    return { key: 'safe', label: t('daysLeftShort', days), badgeBg: 'bg-emerald-100 text-emerald-800', cardBorder: 'border-slate-200', cardBg: 'bg-white', days };
 }
 
-// ==========================================
-// Category helpers
-// ==========================================
 const CATEGORY_LABELS = {
     dairy: { ar: 'ألبان وأجبان', en: 'Dairy & Cheese', emoji: '🥛' },
     canned: { ar: 'معلبات', en: 'Canned', emoji: '🥫' },
@@ -879,8 +864,7 @@ const CATEGORY_LABELS = {
 
 function getCategoryLabel(catKey) {
     const c = CATEGORY_LABELS[catKey];
-    if (!c) return catKey;
-    return `${c.emoji} ${c[currentLang]}`;
+    return c ? `${c.emoji} ${c[currentLang]}` : catKey;
 }
 
 // ==========================================
@@ -916,11 +900,7 @@ function renderBatches() {
         return matchStatus && matchCat && matchSearch;
     });
 
-    if (filtered.length === 0) {
-        listEl.innerHTML = '';
-        emptyEl.classList.remove('hidden');
-        return;
-    }
+    if (filtered.length === 0) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
     emptyEl.classList.add('hidden');
 
     listEl.innerHTML = filtered.map(item => {
@@ -988,11 +968,8 @@ function setStatusFilter(status, rerender = true) {
 function setCategoryFilter(cat, rerender = true) {
     currentCategoryFilter = cat;
     document.querySelectorAll('.cat-pill').forEach(btn => {
-        if (btn.dataset.cat === cat) {
-            btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-800 text-white';
-        } else {
-            btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200';
-        }
+        if (btn.dataset.cat === cat) btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-800 text-white';
+        else btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200';
     });
     saveFilters();
     if (rerender) renderBatches();
@@ -1014,43 +991,30 @@ function startScanner(mode) {
     errorEl.classList.add('hidden');
     modal.classList.remove('hidden');
     document.getElementById('scannerTitle').textContent = mode === 'search' ? t('scannerSearchTitle') : t('scannerAddTitle');
-
     try {
         html5QrcodeScanner = new Html5Qrcode("reader");
         const config = { fps: 10, qrbox: { width: 250, height: 150 } };
         html5QrcodeScanner.start({ facingMode: "environment" }, config,
             (decodedText) => {
-                playBeep();
-                stopScanner();
+                playBeep(); stopScanner();
                 if (scannerMode === 'search') {
                     document.getElementById('searchInput').value = decodedText;
-                    saveFilters();
-                    renderBatches();
+                    saveFilters(); renderBatches();
                     showToast(t('searchSuccess', decodedText), 'success');
                 } else {
                     document.getElementById('inputBarcode').value = decodedText;
                     handleBarcodeLookup(decodedText);
                     saveFormDraft();
                 }
-            },
-            () => {}
-        ).catch(() => {
-            errorEl.textContent = t('cameraError');
-            errorEl.classList.remove('hidden');
-        });
-    } catch (e) {
-        errorEl.textContent = t('cameraNotSupported');
-        errorEl.classList.remove('hidden');
-    }
+            }, () => {}
+        ).catch(() => { errorEl.textContent = t('cameraError'); errorEl.classList.remove('hidden'); });
+    } catch (e) { errorEl.textContent = t('cameraNotSupported'); errorEl.classList.remove('hidden'); }
 }
 
 function stopScanner() {
     document.getElementById('scannerModal').classList.add('hidden');
     if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {
-            html5QrcodeScanner.clear();
-            html5QrcodeScanner = null;
-        }).catch(() => { html5QrcodeScanner = null; });
+        html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); html5QrcodeScanner = null; }).catch(() => { html5QrcodeScanner = null; });
     }
 }
 
@@ -1068,9 +1032,7 @@ function handleBarcodeLookup(barcode) {
         if (saved.image) setPreviewImage(saved.image); else clearImage();
         banner.classList.remove('hidden');
         document.getElementById('inputExpiry').focus();
-    } else {
-        banner.classList.add('hidden');
-    }
+    } else banner.classList.add('hidden');
 }
 
 function processImage(event) {
@@ -1123,12 +1085,10 @@ function openAddModal() {
     const hasDraft = restoreFormDraft();
     document.getElementById('addModal').classList.remove('hidden');
     lucide.createIcons();
-    if (hasDraft) showToast(currentLang === 'ar' ? 'تم استعادة مسودتك السابقة' : 'Draft restored', 'success');
+    if (hasDraft) showToast(t('draftRestored'), 'success');
 }
 
-function closeAddModal() {
-    document.getElementById('addModal').classList.add('hidden');
-}
+function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
 
 function suggestAlertDays() {
     const cat = document.getElementById('inputCategory').value;
@@ -1167,15 +1127,9 @@ function saveBatch(e) {
 
     const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
     batches.push(newBatch);
+    if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
 
-    if (barcode) {
-        catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
-    }
-
-    saveData();
-    clearFormDraft();
-    closeAddModal();
-    renderBatches();
+    saveData(); clearFormDraft(); closeAddModal(); renderBatches();
     showToast(t('saveSuccess'), 'success');
 }
 
@@ -1192,8 +1146,7 @@ function disposeBatch(id) {
     if (!item) return;
     openConfirmDialog(t('disposeConfirmTitle'), t('disposeConfirmMsg', item.name), () => {
         batches = batches.filter(b => b.id !== id);
-        saveData();
-        renderBatches();
+        saveData(); renderBatches();
         showToast(t('removeSuccess'), 'success');
     });
 }
@@ -1202,12 +1155,7 @@ function disposeBatch(id) {
 // Alerts
 // ==========================================
 function playBeep() {
-    try {
-        if (typeof Tone !== 'undefined') {
-            const synth = new Tone.Synth().toDestination();
-            synth.triggerAttackRelease("C6", "16n");
-        }
-    } catch (e) {}
+    try { if (typeof Tone !== 'undefined') { const synth = new Tone.Synth().toDestination(); synth.triggerAttackRelease("C6", "16n"); } } catch (e) {}
 }
 
 function triggerAlertCheck(manualClick = false) {
@@ -1217,7 +1165,6 @@ function triggerAlertCheck(manualClick = false) {
         if (st.key === 'expired') expiredCount++;
         else if (st.key === 'danger') dangerCount++;
     });
-
     if (manualClick) {
         if (expiredCount === 0 && dangerCount === 0) { showToast(t('noAlerts'), 'success'); return; }
         try {
@@ -1231,9 +1178,7 @@ function triggerAlertCheck(manualClick = false) {
         showToast(msg, 'warning');
         if ("Notification" in window) {
             if (Notification.permission === "granted") new Notification(t('appTitle'), { body: msg });
-            else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(p => { if (p === "granted") new Notification(t('appTitle'), { body: msg }); });
-            }
+            else if (Notification.permission !== "denied") Notification.requestPermission().then(p => { if (p === "granted") new Notification(t('appTitle'), { body: msg }); });
         }
     }
 }
@@ -1245,7 +1190,7 @@ function openBackupModal() { document.getElementById('backupModal').classList.re
 function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
 
 function exportData() {
-    const payload = { version: 1, exportedAt: new Date().toISOString(), batches, catalog };
+    const payload = { version: 2, exportedAt: new Date().toISOString(), batches, catalog };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
     const a = document.createElement('a');
     const dateTag = new Date().toISOString().split('T')[0];
@@ -1265,9 +1210,7 @@ function importData(event) {
             if (Array.isArray(imported.batches)) {
                 batches = imported.batches;
                 catalog = imported.catalog || {};
-                saveData();
-                renderBatches();
-                closeBackupModal();
+                saveData(); renderBatches(); closeBackupModal();
                 showToast(t('importSuccess', batches.length), 'success');
             } else showToast(t('importInvalid'), 'error');
         } catch (err) { showToast(t('importError'), 'error'); }
@@ -1285,29 +1228,20 @@ function requestClearAll() {
 }
 
 // ==========================================
-// AI Assistant (Smart Local Analysis Engine)
+// AI Assistant
 // ==========================================
-function openAIModal() {
-    document.getElementById('aiModal').classList.remove('hidden');
-    document.getElementById('aiContent').innerHTML = '';
-    lucide.createIcons();
-}
-
+function openAIModal() { document.getElementById('aiModal').classList.remove('hidden'); document.getElementById('aiContent').innerHTML = ''; lucide.createIcons(); }
 function closeAIModal() { document.getElementById('aiModal').classList.add('hidden'); }
 
 function showAILoading(callback) {
     const loader = document.getElementById('aiLoading');
     loader.classList.remove('hidden');
     document.getElementById('aiContent').innerHTML = '';
-    setTimeout(() => {
-        loader.classList.add('hidden');
-        callback();
-    }, 600);
+    setTimeout(() => { loader.classList.add('hidden'); callback(); }, 600);
 }
 
 function aiCard(icon, title, body, color = 'purple') {
-    return `
-    <div class="bg-${color}-50 border border-${color}-200 rounded-2xl p-4">
+    return `<div class="bg-${color}-50 border border-${color}-200 rounded-2xl p-4">
         <div class="flex items-center gap-2 mb-2">
             <i data-lucide="${icon}" class="w-5 h-5 text-${color}-600"></i>
             <h4 class="font-extrabold text-${color}-900 text-sm">${title}</h4>
@@ -1323,18 +1257,15 @@ function runAIAnalysis() {
             lucide.createIcons(); return;
         }
         const counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
-        let totalQty = 0;
-        const catCount = {};
+        let totalQty = 0; const catCount = {};
         batches.forEach(b => {
             const st = getBatchStatus(b);
-            counts[st.key]++;
-            totalQty += b.qty;
+            counts[st.key]++; totalQty += b.qty;
             catCount[b.category] = (catCount[b.category] || 0) + b.qty;
         });
         const riskRate = Math.round(((counts.expired + counts.danger) / batches.length) * 100);
         const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
-        const html = `
-        ${aiCard('bar-chart-3', t('aiAnalysisTitle'), `
+        const html = `${aiCard('bar-chart-3', t('aiAnalysisTitle'), `
             <div class="grid grid-cols-2 gap-2 mt-1">
                 <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
                     <div class="text-lg font-extrabold text-purple-700">${batches.length}</div>
@@ -1415,11 +1346,11 @@ function runAIAdvice() {
         const tips = [];
         let expired = 0, danger = 0;
         batches.forEach(b => { const k = getBatchStatus(b).key; if (k === 'expired') expired++; if (k === 'danger') danger++; });
-        if (expired > 0) tips.push(currentLang === 'ar' ? `🚨 أزل ${expired} منتج منتهي فوراً لتجنب الغرامات والمخاطر الصحية.` : `🚨 Remove ${expired} expired products immediately to avoid penalties and health risks.`);
-        if (danger > 0) tips.push(currentLang === 'ar' ? `⚡ ضع ${danger} منتج في منطقة عرض ترويجي لتصريفها قبل انتهاء صلاحيتها.` : `⚡ Place ${danger} items in a promotional display to sell before expiry.`);
-        if (expired === 0 && danger === 0) tips.push(currentLang === 'ar' ? '✅ وضعك ممتاز! استمر في المتابعة اليومية.' : '✅ Excellent! Continue daily monitoring.');
+        if (expired > 0) tips.push(currentLang === 'ar' ? `🚨 أزل ${expired} منتج منتهي فوراً.` : `🚨 Remove ${expired} expired products immediately.`);
+        if (danger > 0) tips.push(currentLang === 'ar' ? `⚡ ضع ${danger} منتج في عرض ترويجي.` : `⚡ Place ${danger} items in a promotional display.`);
+        if (expired === 0 && danger === 0) tips.push(currentLang === 'ar' ? '✅ وضعك ممتاز! استمر في المتابعة.' : '✅ Excellent! Continue monitoring.');
         tips.push(currentLang === 'ar' ? '💾 لا تنسَ تصدير نسخة احتياطية أسبوعياً.' : '💾 Do not forget to export a weekly backup.');
-        if (batches.length > 20) tips.push(currentLang === 'ar' ? '📊 لديك مخزون كبير، فكر في تحليل الأنماط الأكثر مبيعاً.' : '📊 Large inventory, consider analyzing best-seller patterns.');
+        if (batches.length > 20) tips.push(currentLang === 'ar' ? '📊 لديك مخزون كبير، فكر في تحليل الأكثر مبيعاً.' : '📊 Large inventory, consider analyzing best-sellers.');
         const html = aiCard('lightbulb', t('aiAdviceTitle'), `<ul class="space-y-1.5">${tips.map(tip => `<li>${tip}</li>`).join('')}</ul>`, 'amber');
         document.getElementById('aiContent').innerHTML = html;
         lucide.createIcons();
@@ -1465,19 +1396,12 @@ function showToast(text, type = 'success') {
 }
 
 // ==========================================
-// Auto-save on visibility change / beforeunload
+// Auto-save
 // ==========================================
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        saveData();
-        saveFilters();
-    }
+    if (document.visibilityState === 'hidden') { saveData(); saveFilters(); }
 });
-
-window.addEventListener('beforeunload', () => {
-    saveData();
-    saveFilters();
-});
+window.addEventListener('beforeunload', () => { saveData(); saveFilters(); });
 </script>
 </body>
 </html>
