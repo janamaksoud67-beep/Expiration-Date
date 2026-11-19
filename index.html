@@ -12,6 +12,8 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- مكتبة SheetJS لتصدير Excel و CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         body {
@@ -49,6 +51,24 @@
         .ai-glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.2); }
         @keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .ai-thinking { animation: ai-pulse 1s infinite; }
+
+        /* تأثير زر المسح في البحث */
+        .scan-btn-pulse {
+            position: relative;
+        }
+        .scan-btn-pulse::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: inherit;
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            animation: scan-pulse 2s infinite;
+            pointer-events: none;
+        }
+        @keyframes scan-pulse {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.15); }
+        }
     </style>
 </head>
 <body class="text-slate-800 pb-24 select-none">
@@ -119,6 +139,7 @@
 
     <main class="max-w-3xl mx-auto px-3 pt-4 space-y-4">
 
+        <!-- 🔍 خانة البحث مع زر المسح -->
         <div class="flex gap-2">
             <div class="relative flex-1">
                 <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2"></i>
@@ -128,9 +149,17 @@
                     <i data-lucide="x-circle" class="w-5 h-5"></i>
                 </button>
             </div>
-            <button onclick="startScanner('search')" data-i18n-title="cameraSearch" title="بحث بالكاميرا" class="bg-slate-800 text-white px-4 rounded-2xl flex items-center justify-center shadow-sm active:scale-95 transition">
-                <i data-lucide="camera" class="w-5 h-5"></i>
+            <!-- 🎯 زر المسح في البحث (محسّن) -->
+            <button onclick="startScanner('search')" data-i18n-title="cameraSearch" title="بحث بالكاميرا / QR Code" 
+                class="scan-btn-pulse bg-gradient-to-br from-emerald-600 to-emerald-700 text-white px-4 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition">
+                <i data-lucide="scan-line" class="w-6 h-6"></i>
             </button>
+        </div>
+
+        <!-- 💡 تلميح صغير يوضح وظيفة زر المسح -->
+        <div class="text-[10px] text-center text-slate-500 font-semibold -mt-2 flex items-center justify-center gap-1">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            <span data-i18n="scanHint">اضغط زر المسح للبحث بالباركود أو QR Code</span>
         </div>
 
         <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="statusFilters">
@@ -184,6 +213,10 @@
             <div class="p-4 bg-slate-900">
                 <div id="reader" class="w-full overflow-hidden rounded-2xl bg-black min-h-[250px]"></div>
                 <p id="scannerError" class="hidden text-red-400 text-xs text-center mt-3 font-semibold"></p>
+                <p class="text-emerald-400 text-[11px] text-center mt-2 font-semibold flex items-center justify-center gap-1">
+                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                    <span data-i18n="supportsQR">يدعم الباركود و QR Code</span>
+                </p>
             </div>
             <div class="p-4 bg-white text-center">
                 <button onclick="stopScanner()" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-sm" data-i18n="closeCamera">إغلاق الكاميرا والإدخال يدوياً</button>
@@ -289,9 +322,9 @@
         </div>
     </div>
 
-    <!-- Backup Modal -->
-    <div id="backupModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
+    <!-- Backup Modal (محدث مع خيارات التصدير) -->
+    <div id="backupModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-md w-full my-4 overflow-hidden shadow-2xl">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
                 <h3 class="font-extrabold text-base flex items-center gap-2">
                     <i data-lucide="shield-check" class="w-5 h-5 text-sky-400"></i>
@@ -301,31 +334,63 @@
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div class="p-5 space-y-4">
+            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                 <p class="text-xs text-slate-600 leading-relaxed bg-slate-100 p-3 rounded-xl" data-i18n="backupInfo">
                     يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.
                 </p>
 
-                <button onclick="exportData()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
-                    <i data-lucide="download" class="w-5 h-5"></i>
-                    <span data-i18n="exportBtn">تصدير نسخة احتياطية (JSON)</span>
-                </button>
+                <!-- 📤 قسم التصدير -->
+                <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3">
+                    <h4 class="font-extrabold text-sky-900 text-xs mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="download" class="w-4 h-4 text-sky-600"></i>
+                        <span data-i18n="exportSection">تصدير البيانات</span>
+                    </h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Excel -->
+                        <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                            <span class="text-[10px]" data-i18n="exportExcelBtn">Excel (XLSX)</span>
+                        </button>
+                        <!-- CSV -->
+                        <button onclick="exportCSV()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                            <span class="text-[10px]" data-i18n="exportCSVBtn">CSV</span>
+                        </button>
+                        <!-- JSON -->
+                        <button onclick="exportData()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
+                            <i data-lucide="file-json" class="w-5 h-5"></i>
+                            <span class="text-[10px]" data-i18n="exportJSONBtn">JSON</span>
+                        </button>
+                        <!-- Google Sheets -->
+                        <button onclick="exportGoogleSheets()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
+                            <i data-lucide="table" class="w-5 h-5"></i>
+                            <span class="text-[10px]" data-i18n="exportGoogleBtn">Google Sheets</span>
+                        </button>
+                    </div>
+                </div>
 
-                <label class="w-full cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
-                    <i data-lucide="upload" class="w-5 h-5 text-emerald-400"></i>
-                    <span data-i18n="importBtn">استعادة بيانات من ملف</span>
-                    <input type="file" accept=".json" onchange="importData(event)" class="hidden">
-                </label>
+                <!-- 📥 قسم الاستيراد -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+                    <h4 class="font-extrabold text-emerald-900 text-xs mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="upload" class="w-4 h-4 text-emerald-600"></i>
+                        <span data-i18n="importSection">استيراد البيانات</span>
+                    </h4>
+                    <label class="w-full cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition text-xs">
+                        <i data-lucide="file-up" class="w-4 h-4 text-emerald-400"></i>
+                        <span data-i18n="importBtn">استعادة من ملف (JSON/CSV/XLSX)</span>
+                        <input type="file" accept=".json,.csv,.xlsx,.xls" onchange="importData(event)" class="hidden">
+                    </label>
+                </div>
 
-                <!-- زر جديد: تحميل البيانات المضمّنة -->
-                <button onclick="loadEmbeddedData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
-                    <i data-lucide="package-check" class="w-5 h-5"></i>
+                <!-- بيانات مضمّنة -->
+                <button onclick="loadEmbeddedData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition text-xs">
+                    <i data-lucide="package-check" class="w-4 h-4"></i>
                     <span data-i18n="loadEmbeddedBtn">تحميل البيانات المضمّنة في الملف</span>
                 </button>
 
-                <!-- زر جديد: نسخ رابط الموقع -->
-                <button onclick="copySiteUrl()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition">
-                    <i data-lucide="link" class="w-5 h-5"></i>
+                <!-- نسخ رابط الموقع -->
+                <button onclick="copySiteUrl()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition text-xs">
+                    <i data-lucide="link" class="w-4 h-4"></i>
                     <span data-i18n="copySiteUrlBtn">نسخ رابط الموقع للمشاركة</span>
                 </button>
 
@@ -339,7 +404,7 @@
         </div>
     </div>
 
-    <!-- AI Modal -->
+    <!-- AI Modal (مختصر كما هو) -->
     <div id="aiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
         <div class="bg-white rounded-3xl max-w-2xl w-full mx-auto my-4 shadow-2xl overflow-hidden ai-glow">
             <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white px-5 py-4 flex items-center justify-between">
@@ -353,9 +418,7 @@
             </div>
             <div class="p-5 space-y-4">
                 <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
-                    <p class="text-sm text-purple-900 font-semibold leading-relaxed" data-i18n="aiWelcome">
-                        👋 مرحباً! أنا مساعدك الذكي.
-                    </p>
+                    <p class="text-sm text-purple-900 font-semibold leading-relaxed" data-i18n="aiWelcome">👋 مرحباً! أنا مساعدك الذكي.</p>
                 </div>
                 <div id="aiLoading" class="hidden text-center py-6">
                     <div class="inline-flex items-center gap-2 text-purple-700 font-bold ai-thinking">
@@ -413,48 +476,34 @@
 // ==========================================
 // 🔴 بياناتك المضمّنة — استبدلها ببياناتك الحقيقية
 // ==========================================
-// طريقة الحصول على بياناتك:
-// 1. افتح التطبيق على جهازك → اضغط زر النسخ الاحتياطي (🗄️)
-// 2. اضغط "تصدير نسخة احتياطية (JSON)" → سينزل ملف
-// 3. افتح الملف بـ Notepad → انسخ محتوى batches و catalog
-// 4. الصقهما هنا داخل EMBEDDED_DATA
-// ==========================================
 const EMBEDDED_DATA = {
     version: 2,
     exportedAt: "2025-01-01T00:00:00.000Z",
-    batches: [
-        // ⬇️ ضع هنا بيانات batches الحقيقية
-        // مثال:
-        // { "id": "batch-1", "barcode": "6281007041123", "name": "لبنة طازجة 400غ", "category": "dairy", "expiryDate": "2025-12-31", "qty": 4, "alertDays": 4, "image": "" }
-    ],
-    catalog: {
-        // ⬇️ ضع هنا بيانات catalog الحقيقية (مفتاحها الباركود)
-        // مثال:
-        // "6281007041123": { "name": "لبنة طازجة 400غ", "category": "dairy", "image": "", "alertDays": 4 }
-    }
+    batches: [],
+    catalog: {}
 };
 
 // ==========================================
 // رابط الموقع المنشور (للمشاركة)
 // ==========================================
-// إذا رفعت الملف على GitHub Pages أو Netlify، ضع الرابط هنا.
-// مثال: "https://username.github.io/expiry-tracker/"
-const SITE_URL = ""; // اتركه فارغاً ليُكتشف تلقائياً من window.location
+const SITE_URL = "";
 
 // ==========================================
-// Translation Dictionary
+// Translation Dictionary — محدث
 // ==========================================
 const I18N = {
     ar: {
         appTitle: 'متتبع الصلاحية', appSubtitle: 'إدارة رفوف السوبر ماركت',
-        searchPlaceholder: 'ابحث باسم الصنف أو الباركود...', cameraSearch: 'بحث بالكاميرا',
+        searchPlaceholder: 'ابحث باسم الصنف أو الباركود...', cameraSearch: 'بحث بالكاميرا / QR Code',
+        scanHint: 'اضغط زر المسح للبحث بالباركود أو QR Code',
+        supportsQR: 'يدعم الباركود و QR Code',
         filterAll: 'الكل', filterExpired: '🔴 منتهي الصلاحية', filterDanger: '🟠 خطر قريب',
         filterWarning: '🟡 خلال 30 يوم', filterSafe: '🟢 سليم',
         catAll: 'جميع الأقسام', catDairy: '🥛 ألبان وأجبان', catCanned: '🥫 معلبات',
         catDrinks: '🧃 مشروبات', catSweets: '🍫 حلويات', catFrozen: '❄️ مجمدات', catOther: '📦 أخرى',
         emptyTitle: 'لا توجد أصناف مطابقة', emptySubtitle: 'اضغط على زر الإضافة بالأسفل لمسح باركود جديد',
         addBtn: 'إضافة صنف / مسح باركود', scannerTitle: 'وجّه الكاميرا نحو الباركود',
-        scannerSearchTitle: 'امسح باركود الصنف للبحث عنه', scannerAddTitle: 'امسح باركود الصنف لإضافته',
+        scannerSearchTitle: 'امسح باركود / QR Code للبحث عن الصنف', scannerAddTitle: 'امسح باركود / QR Code لإضافة الصنف',
         closeCamera: 'إغلاق الكاميرا والإدخال يدوياً',
         cameraError: 'تعذر الوصول للكاميرا. تأكد من إعطاء صلاحية الكاميرا.', cameraNotSupported: 'المتصفح لا يدعم الكاميرا.',
         addModalTitle: 'تسجيل تاريخ صلاحية صنف',
@@ -467,12 +516,15 @@ const I18N = {
         saveBtn: 'حفظ الصنف', cancelBtn: 'إلغاء',
         backupTitle: 'النسخ الاحتياطي وإدارة البيانات',
         backupInfo: 'يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.',
-        exportBtn: 'تصدير نسخة احتياطية (JSON)', importBtn: 'استعادة بيانات من ملف سابق',
+        exportSection: 'تصدير البيانات',
+        importSection: 'استيراد البيانات',
+        exportExcelBtn: 'Excel (XLSX)', exportCSVBtn: 'CSV',
+        exportJSONBtn: 'JSON', exportGoogleBtn: 'Google Sheets',
+        exportBtn: 'تصدير نسخة احتياطية (JSON)', importBtn: 'استعادة من ملف (JSON/CSV/XLSX)',
         clearAllBtn: 'مسح جميع البيانات من التطبيق',
         loadEmbeddedBtn: 'تحميل البيانات المضمّنة في الملف',
         copySiteUrlBtn: 'نسخ رابط الموقع للمشاركة',
-        copyLink: 'نسخ الرابط',
-        shareSiteLabel: 'رابط الموقع:',
+        copyLink: 'نسخ الرابط', shareSiteLabel: 'رابط الموقع:',
         siteUrlCopied: 'تم نسخ رابط الموقع!',
         siteUrlEmpty: 'لم يتم تعيين رابط الموقع. ارفع الملف على استضافة أولاً.',
         embeddedLoaded: (n) => `تم تحميل ${n} صنف من البيانات المضمّنة!`,
@@ -490,6 +542,9 @@ const I18N = {
         saveSuccess: 'تم حفظ الصنف بنجاح على الرف', removeSuccess: 'تمت إزالة الدفعة من القائمة',
         clearAllConfirmTitle: 'مسح جميع البيانات؟', clearAllConfirmMsg: 'سيتم حذف كافة المنتجات نهائياً. هل أنت متأكد؟',
         clearAllSuccess: 'تم مسح جميع البيانات', exportSuccess: 'تم تنزيل ملف النسخة الاحتياطية بنجاح',
+        exportExcelSuccess: 'تم تصدير ملف Excel بنجاح',
+        exportCSVSuccess: 'تم تصدير ملف CSV بنجاح',
+        exportGoogleSuccess: 'تم تجهيز البيانات! الصقها في Google Sheets',
         importSuccess: (n) => `تمت استعادة ${n} صنف بنجاح!`, importInvalid: 'صيغة الملف غير صالحة',
         importError: 'فشل قراءة الملف.', noAlerts: 'ممتاز! لا توجد أصناف منتهية أو في منطقة الخطر.',
         alertMsg: (e, d) => `تنبيه: لديك ${e} صنف منتهي، و ${d} قريب الانتهاء!`,
@@ -504,18 +559,21 @@ const I18N = {
         aiCategories: 'الأقسام', aiRiskRate: 'نسبة المخاطر',
         aiActionRequired: 'إجراء مطلوب فوراً', aiActionSoon: 'إجراء قريب',
         aiActionMonitor: 'مراقبة', aiActionOk: 'سليم',
-        draftRestored: 'تم استعادة مسودتك السابقة'
+        draftRestored: 'تم استعادة مسودتك السابقة',
+        copiedToClipboard: 'تم النسخ إلى الحافظة!'
     },
     en: {
         appTitle: 'Expiry Tracker', appSubtitle: 'Supermarket Shelf Management',
-        searchPlaceholder: 'Search by name or barcode...', cameraSearch: 'Camera Search',
+        searchPlaceholder: 'Search by name or barcode...', cameraSearch: 'Camera / QR Search',
+        scanHint: 'Tap the scan button to search by barcode or QR Code',
+        supportsQR: 'Supports Barcode & QR Code',
         filterAll: 'All', filterExpired: '🔴 Expired', filterDanger: '🟠 Near Danger',
         filterWarning: '🟡 Within 30 days', filterSafe: '🟢 Safe',
         catAll: 'All Categories', catDairy: '🥛 Dairy & Cheese', catCanned: '🥫 Canned',
         catDrinks: '🧃 Drinks', catSweets: '🍫 Sweets', catFrozen: '❄️ Frozen', catOther: '📦 Other',
         emptyTitle: 'No matching items', emptySubtitle: 'Tap the add button below to scan a new barcode',
         addBtn: 'Add Item / Scan Barcode', scannerTitle: 'Point camera at barcode',
-        scannerSearchTitle: 'Scan barcode to search', scannerAddTitle: 'Scan barcode to add item',
+        scannerSearchTitle: 'Scan barcode / QR Code to search', scannerAddTitle: 'Scan barcode / QR Code to add item',
         closeCamera: 'Close camera & enter manually',
         cameraError: 'Cannot access camera. Please grant camera permission.', cameraNotSupported: 'Browser does not support camera.',
         addModalTitle: 'Register Product Expiry',
@@ -528,12 +586,15 @@ const I18N = {
         saveBtn: 'Save Product', cancelBtn: 'Cancel',
         backupTitle: 'Backup & Data Management',
         backupInfo: 'Your data is stored locally. We recommend exporting a backup weekly.',
-        exportBtn: 'Export Backup (JSON)', importBtn: 'Restore from File',
+        exportSection: 'Export Data',
+        importSection: 'Import Data',
+        exportExcelBtn: 'Excel (XLSX)', exportCSVBtn: 'CSV',
+        exportJSONBtn: 'JSON', exportGoogleBtn: 'Google Sheets',
+        exportBtn: 'Export Backup (JSON)', importBtn: 'Restore from File (JSON/CSV/XLSX)',
         clearAllBtn: 'Clear All Data',
         loadEmbeddedBtn: 'Load Embedded Data from File',
         copySiteUrlBtn: 'Copy Site URL for Sharing',
-        copyLink: 'Copy Link',
-        shareSiteLabel: 'Site URL:',
+        copyLink: 'Copy Link', shareSiteLabel: 'Site URL:',
         siteUrlCopied: 'Site URL copied!',
         siteUrlEmpty: 'No site URL set. Host the file first.',
         embeddedLoaded: (n) => `Loaded ${n} items from embedded data!`,
@@ -551,6 +612,9 @@ const I18N = {
         saveSuccess: 'Product saved successfully', removeSuccess: 'Batch removed from list',
         clearAllConfirmTitle: 'Clear all data?', clearAllConfirmMsg: 'All products will be permanently deleted. Are you sure?',
         clearAllSuccess: 'All data cleared', exportSuccess: 'Backup file downloaded successfully',
+        exportExcelSuccess: 'Excel file exported successfully',
+        exportCSVSuccess: 'CSV file exported successfully',
+        exportGoogleSuccess: 'Data ready! Paste it into Google Sheets',
         importSuccess: (n) => `Restored ${n} items successfully!`, importInvalid: 'Invalid file format',
         importError: 'Failed to read file.', noAlerts: 'Great! No expired or near-danger items.',
         alertMsg: (e, d) => `Alert: You have ${e} expired and ${d} near-expiry items!`,
@@ -565,7 +629,8 @@ const I18N = {
         aiCategories: 'Categories', aiRiskRate: 'Risk Rate',
         aiActionRequired: 'Action Required Now', aiActionSoon: 'Action Soon',
         aiActionMonitor: 'Monitor', aiActionOk: 'Safe',
-        draftRestored: 'Draft restored'
+        draftRestored: 'Draft restored',
+        copiedToClipboard: 'Copied to clipboard!'
     }
 };
 
@@ -759,7 +824,7 @@ function restoreFormDraft() {
 function clearFormDraft() { localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT); }
 
 // ==========================================
-// Data Loading — 🔴 المفتاح الأساسي للتعديل
+// Data Loading
 // ==========================================
 function loadData() {
     try {
@@ -770,15 +835,12 @@ function loadData() {
         if (savedBatches) batches = JSON.parse(savedBatches);
         if (savedCatalog) catalog = JSON.parse(savedCatalog);
 
-        // أول فتح على أي جهاز → حمّل البيانات المضمّنة من الملف
         if (!isInitialized && batches.length === 0) {
             if (EMBEDDED_DATA && Array.isArray(EMBEDDED_DATA.batches) && EMBEDDED_DATA.batches.length > 0) {
-                // تحميل البيانات المضمّنة (نسخة عميقة)
                 batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
                 catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
                 console.log('✅ Loaded embedded data:', batches.length, 'batches');
             } else {
-                // لا توجد بيانات مضمّنة → استخدم المنتجات التجريبية
                 const today = new Date();
                 const formatDate = (offsetDays) => {
                     const d = new Date(today);
@@ -804,7 +866,6 @@ function loadData() {
     }
 }
 
-// زر تحميل البيانات المضمّنة يدوياً
 function loadEmbeddedData() {
     if (!EMBEDDED_DATA || !Array.isArray(EMBEDDED_DATA.batches) || EMBEDDED_DATA.batches.length === 0) {
         showToast(t('embeddedEmpty'), 'warning');
@@ -982,7 +1043,7 @@ function clearSearch() {
 }
 
 // ==========================================
-// Scanner
+// Scanner — محسّن لدعم QR والباركود
 // ==========================================
 function startScanner(mode) {
     scannerMode = mode;
@@ -991,24 +1052,81 @@ function startScanner(mode) {
     errorEl.classList.add('hidden');
     modal.classList.remove('hidden');
     document.getElementById('scannerTitle').textContent = mode === 'search' ? t('scannerSearchTitle') : t('scannerAddTitle');
+    lucide.createIcons();
+
     try {
         html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+        // إعدادات محسّنة لدعم الباركود و QR Code معاً
+        const config = { 
+            fps: 15, 
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                const qrboxSize = Math.floor(minEdge * 0.75);
+                return { width: qrboxSize, height: qrboxSize };
+            },
+            aspectRatio: 1.0,
+            disableFlip: false,
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true  // يستخدم API المتصفح الأصلي للكشف (أسرع وأدق)
+            },
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.CODABAR,
+                Html5QrcodeSupportedFormats.DATA_MATRIX
+            ]
+        };
+        
         html5QrcodeScanner.start({ facingMode: "environment" }, config,
             (decodedText) => {
-                playBeep(); stopScanner();
+                playBeep(); 
+                stopScanner();
                 if (scannerMode === 'search') {
-                    document.getElementById('searchInput').value = decodedText;
-                    saveFilters(); renderBatches();
-                    showToast(t('searchSuccess', decodedText), 'success');
+                    // تعبئة خانة البحث
+                    const searchInput = document.getElementById('searchInput');
+                    searchInput.value = decodedText;
+                    saveFilters(); 
+                    renderBatches();
+                    // إظهار عدد النتائج
+                    const resultsCount = batches.filter(b => 
+                        b.name.toLowerCase().includes(decodedText.toLowerCase()) || 
+                        (b.barcode && b.barcode.toLowerCase().includes(decodedText.toLowerCase()))
+                    ).length;
+                    if (resultsCount > 0) {
+                        showToast(`✅ ${currentLang === 'ar' ? 'تم العثور على' : 'Found'} ${resultsCount} ${currentLang === 'ar' ? 'صنف' : 'items'}`, 'success');
+                    } else {
+                        showToast(`⚠️ ${currentLang === 'ar' ? 'لا توجد نتائج للباركود:' : 'No results for:'} ${decodedText}`, 'warning');
+                    }
                 } else {
+                    // تعبئة نموذج الإضافة
                     document.getElementById('inputBarcode').value = decodedText;
                     handleBarcodeLookup(decodedText);
                     saveFormDraft();
+                    // عرض رسالة نجاح
+                    if (catalog[decodedText]) {
+                        showToast(currentLang === 'ar' ? '✅ تم التعرف على المنتج!' : '✅ Product recognized!', 'success');
+                    } else {
+                        showToast(currentLang === 'ar' ? '⚠️ منتج جديد، أدخل البيانات' : '⚠️ New product, enter details', 'warning');
+                    }
                 }
-            }, () => {}
-        ).catch(() => { errorEl.textContent = t('cameraError'); errorEl.classList.remove('hidden'); });
-    } catch (e) { errorEl.textContent = t('cameraNotSupported'); errorEl.classList.remove('hidden'); }
+            }, 
+            (errorMessage) => { /* تجاهل أخطاء المسح المستمرة */ }
+        ).catch((err) => { 
+            console.error(err);
+            errorEl.textContent = t('cameraError'); 
+            errorEl.classList.remove('hidden'); 
+        });
+    } catch (e) { 
+        console.error(e);
+        errorEl.textContent = t('cameraNotSupported'); 
+        errorEl.classList.remove('hidden'); 
+    }
 }
 
 function stopScanner() {
@@ -1184,38 +1302,248 @@ function triggerAlertCheck(manualClick = false) {
 }
 
 // ==========================================
-// Backup
+// Backup & Export
 // ==========================================
-function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); }
+function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); lucide.createIcons(); }
 function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
 
+// 📊 تحضير البيانات للتصدير
+function prepareExportData() {
+    return batches.map(b => {
+        const st = getBatchStatus(b);
+        return {
+            [currentLang === 'ar' ? 'الباركود' : 'Barcode']: b.barcode || '',
+            [currentLang === 'ar' ? 'اسم الصنف' : 'Product Name']: b.name,
+            [currentLang === 'ar' ? 'القسم' : 'Category']: getCategoryLabel(b.category),
+            [currentLang === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date']: b.expiryDate,
+            [currentLang === 'ar' ? 'الكمية' : 'Quantity']: b.qty,
+            [currentLang === 'ar' ? 'أيام التنبيه' : 'Alert Days']: b.alertDays,
+            [currentLang === 'ar' ? 'الحالة' : 'Status']: st.label,
+            [currentLang === 'ar' ? 'الأيام المتبقية' : 'Days Remaining']: st.days
+        };
+    });
+}
+
+// 📗 تصدير Excel (XLSX)
+function exportExcel() {
+    try {
+        if (batches.length === 0) {
+            showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
+            return;
+        }
+        const data = prepareExportData();
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        
+        // ضبط عرض الأعمدة
+        const colWidths = Object.keys(data[0] || {}).map(() => ({ wch: 18 }));
+        worksheet['!cols'] = colWidths;
+        
+        // إضافة فلتر
+        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range({
+            s: { c: 0, r: 0 },
+            e: { c: Object.keys(data[0] || {}).length - 1, r: data.length }
+        })};
+        
+        const workbook = XLSX.utils.book_new();
+        const sheetName = currentLang === 'ar' ? 'المنتجات' : 'Products';
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        
+        // ورقة إضافية للإحصائيات
+        const stats = [
+            { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statExpired'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'expired').length },
+            { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statDanger'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'danger').length },
+            { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statWarning'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'warning').length },
+            { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statSafe'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'safe').length },
+            { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('aiTotal'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.length }
+        ];
+        const statsSheet = XLSX.utils.json_to_sheet(stats);
+        statsSheet['!cols'] = [{ wch: 18 }, { wch: 10 }];
+        XLSX.utils.book_append_sheet(workbook, statsSheet, currentLang === 'ar' ? 'الإحصائيات' : 'Statistics');
+        
+        const dateTag = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `supermarket-expiry-${dateTag}.xlsx`);
+        showToast(t('exportExcelSuccess'), 'success');
+    } catch (err) {
+        console.error(err);
+        showToast(t('exportError') || 'Export error', 'error');
+    }
+}
+
+// 📄 تصدير CSV
+function exportCSV() {
+    try {
+        if (batches.length === 0) {
+            showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
+            return;
+        }
+        const data = prepareExportData();
+        // إضافة BOM لدعم العربية في Excel
+        const csv = '\uFEFF' + XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(data));
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateTag = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `supermarket-expiry-${dateTag}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        showToast(t('exportCSVSuccess'), 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('CSV export error', 'error');
+    }
+}
+
+// 📋 تصدير JSON (الطريقة الأصلية)
 function exportData() {
     const payload = { version: 2, exportedAt: new Date().toISOString(), batches, catalog };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
     const a = document.createElement('a');
     const dateTag = new Date().toISOString().split('T')[0];
     a.setAttribute("href", dataStr);
-    a.setAttribute("download", `supermarket-expiry-backup-${dateTag}.json`);
+    a.setAttribute("download", `supermarket-expiry-${dateTag}.json`);
     document.body.appendChild(a); a.click(); a.remove();
     showToast(t('exportSuccess'), 'success');
 }
 
+// 🔷 تصدير إلى Google Sheets — يفتح Google Sheets وينسخ البيانات
+function exportGoogleSheets() {
+    if (batches.length === 0) {
+        showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
+        return;
+    }
+    try {
+        const data = prepareExportData();
+        const headers = Object.keys(data[0] || {});
+        const rows = data.map(row => headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join('\t'));
+        const tsv = [headers.join('\t'), ...rows].join('\n');
+
+        // نسخ البيانات إلى الحافظة بصيغة TSV (متوافقة مع Google Sheets)
+        copyToClipboard(tsv).then(() => {
+            // فتح Google Sheets في نافذة جديدة
+            const win = window.open('https://sheets.new', '_blank');
+            if (!win) {
+                showToast(currentLang === 'ar' 
+                    ? 'تم نسخ البيانات! لكن يجب السماح بالنوافذ المنبثقة' 
+                    : 'Data copied! But please allow popups', 'warning');
+                return;
+            }
+            showToast(currentLang === 'ar' 
+                ? '📋 تم نسخ البيانات! اضغط Ctrl+V في Google Sheets' 
+                : '📋 Data copied! Press Ctrl+V in Google Sheets', 'success');
+            closeBackupModal();
+        }).catch(() => {
+            // خطة بديلة: تنزيل الملف
+            const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateTag = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `supermarket-expiry-${dateTag}.tsv`;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+            showToast(currentLang === 'ar' ? 'تم تنزيل ملف TSV لـ Google Sheets' : 'TSV file downloaded for Google Sheets', 'success');
+        });
+    } catch (err) {
+        console.error(err);
+        showToast('Google Sheets export error', 'error');
+    }
+}
+
+// 📥 استيراد من JSON / CSV / XLSX
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
     const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const imported = JSON.parse(e.target.result);
-            if (Array.isArray(imported.batches)) {
-                batches = imported.batches;
-                catalog = imported.catalog || {};
-                saveData(); renderBatches(); closeBackupModal();
-                showToast(t('importSuccess', batches.length), 'success');
-            } else showToast(t('importInvalid'), 'error');
-        } catch (err) { showToast(t('importError'), 'error'); }
-    };
-    reader.readAsText(file);
+
+    if (ext === 'json') {
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (Array.isArray(imported.batches)) {
+                    batches = imported.batches;
+                    catalog = imported.catalog || {};
+                    saveData(); renderBatches(); closeBackupModal();
+                    showToast(t('importSuccess', batches.length), 'success');
+                } else showToast(t('importInvalid'), 'error');
+            } catch (err) { showToast(t('importError'), 'error'); }
+        };
+        reader.readAsText(file);
+    } else if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet);
+                
+                if (rows.length === 0) {
+                    showToast(t('importInvalid'), 'error');
+                    return;
+                }
+                
+                // تحويل الصفوف إلى batches
+                const importedBatches = rows.map((row, idx) => {
+                    const barcode = row['الباركود'] || row['Barcode'] || row['barcode'] || '';
+                    const name = row['اسم الصنف'] || row['Product Name'] || row['name'] || row['Name'] || '';
+                    const categoryLabel = row['القسم'] || row['Category'] || row['category'] || '';
+                    const expiryDate = row['تاريخ الانتهاء'] || row['Expiry Date'] || row['expiryDate'] || row['Expiry'] || '';
+                    const qty = parseInt(row['الكمية'] || row['Quantity'] || row['qty'] || 1) || 1;
+                    const alertDays = parseInt(row['أيام التنبيه'] || row['Alert Days'] || row['alertDays'] || 7) || 7;
+                    
+                    // استخراج مفتاح القسم من التسمية
+                    let category = 'other';
+                    const catLower = String(categoryLabel).toLowerCase();
+                    if (catLower.includes('ألبان') || catLower.includes('dairy')) category = 'dairy';
+                    else if (catLower.includes('معلب') || catLower.includes('canned')) category = 'canned';
+                    else if (catLower.includes('مشروب') || catLower.includes('drink')) category = 'drinks';
+                    else if (catLower.includes('حلو') || catLower.includes('sweet')) category = 'sweets';
+                    else if (catLower.includes('مجمد') || catLower.includes('frozen')) category = 'frozen';
+                    
+                    if (!name) return null;
+                    
+                    return {
+                        id: 'batch-' + Date.now() + '-' + idx,
+                        barcode: String(barcode),
+                        name: String(name),
+                        category: category,
+                        expiryDate: String(expiryDate),
+                        qty: qty,
+                        alertDays: alertDays,
+                        image: ''
+                    };
+                }).filter(Boolean);
+
+                if (importedBatches.length === 0) {
+                    showToast(t('importInvalid'), 'error');
+                    return;
+                }
+
+                openConfirmDialog(
+                    currentLang === 'ar' ? 'استيراد البيانات؟' : 'Import data?',
+                    currentLang === 'ar' 
+                        ? `سيتم استبدال البيانات الحالية بـ ${importedBatches.length} صنف. هل أنت متأكد؟`
+                        : `Current data will be replaced with ${importedBatches.length} items. Continue?`,
+                    () => {
+                        batches = importedBatches;
+                        catalog = {};
+                        importedBatches.forEach(b => {
+                            if (b.barcode) catalog[b.barcode] = { name: b.name, category: b.category, image: b.image, alertDays: b.alertDays };
+                        });
+                        saveData(); renderBatches(); closeBackupModal();
+                        showToast(t('importSuccess', batches.length), 'success');
+                    }
+                );
+            } catch (err) { 
+                console.error(err);
+                showToast(t('importError'), 'error'); 
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        showToast(t('importInvalid'), 'error');
+    }
 }
 
 function requestClearAll() {
@@ -1228,7 +1556,7 @@ function requestClearAll() {
 }
 
 // ==========================================
-// AI Assistant
+// AI Assistant (كما هو)
 // ==========================================
 function openAIModal() { document.getElementById('aiModal').classList.remove('hidden'); document.getElementById('aiContent').innerHTML = ''; lucide.createIcons(); }
 function closeAIModal() { document.getElementById('aiModal').classList.add('hidden'); }
@@ -1392,7 +1720,7 @@ function showToast(text, type = 'success') {
     toastTimeout = setTimeout(() => {
         toast.classList.remove('opacity-100', 'translate-y-0');
         toast.classList.add('opacity-0', '-translate-y-2');
-    }, 3200);
+    }, 3500);
 }
 
 // ==========================================
