@@ -5,15 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>متتبع صلاحية المنتجات | السوبر ماركت</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'class' }
-    </script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <!-- مكتبة SheetJS لتصدير Excel و CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- مكتبة JSZip لإنشاء ملفات Excel مع صور -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
         body {
@@ -52,10 +51,7 @@
         @keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .ai-thinking { animation: ai-pulse 1s infinite; }
 
-        /* تأثير زر المسح في البحث */
-        .scan-btn-pulse {
-            position: relative;
-        }
+        .scan-btn-pulse { position: relative; }
         .scan-btn-pulse::after {
             content: '';
             position: absolute;
@@ -69,6 +65,29 @@
             0% { opacity: 1; transform: scale(1); }
             100% { opacity: 0; transform: scale(1.15); }
         }
+
+        /* 🔍 تكبير الصورة */
+        .product-thumb { cursor: zoom-in; transition: transform 0.15s; }
+        .product-thumb:active { transform: scale(0.95); }
+
+        #imageViewer {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #imageViewer img {
+            animation: zoomIn 0.25s ease-out;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* زر تعديل */
+        .edit-btn { transition: all 0.15s; }
+        .edit-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="text-slate-800 pb-24 select-none">
@@ -85,36 +104,26 @@
                     <p class="text-xs text-slate-400" data-i18n="appSubtitle">إدارة رفوف السوبر ماركت</p>
                 </div>
             </div>
-
             <div class="flex items-center gap-1.5">
-                <button onclick="toggleLanguage()" title="Language" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95 text-xs font-extrabold text-emerald-400">
+                <button onclick="toggleLanguage()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95 text-xs font-extrabold text-emerald-400">
                     <span id="langLabel">EN</span>
                 </button>
-                <button onclick="toggleTheme()" title="Theme" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                <button onclick="toggleTheme()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i id="themeIcon" data-lucide="moon" class="w-5 h-5 text-amber-400"></i>
                 </button>
-                <button onclick="openAIModal()" title="AI Assistant" class="relative p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl transition active:scale-95">
+                <button onclick="openAIModal()" class="relative p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl transition active:scale-95">
                     <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
                 </button>
-                <button onclick="triggerAlertCheck(true)" title="Alerts" class="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                <button onclick="triggerAlertCheck(true)" class="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>
                     <span id="alertBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
                 </button>
-                <button onclick="openBackupModal()" title="Backup" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
+                <button onclick="openBackupModal()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition active:scale-95">
                     <i data-lucide="database-backup" class="w-5 h-5 text-sky-400"></i>
                 </button>
             </div>
         </div>
 
-        <!-- شريط المشاركة: رابط الموقع -->
-        <div id="shareBar" class="bg-emerald-900/40 border-t border-emerald-700/50 px-3 py-1.5">
-            <div class="max-w-3xl mx-auto flex items-center justify-between gap-2 text-[11px]">
-                <span class="text-emerald-200 font-bold truncate">🔗 <span data-i18n="shareSiteLabel">رابط الموقع:</span> <span id="siteUrlLabel" dir="ltr" class="font-mono">—</span></span>
-                <button onclick="copySiteUrl()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-extrabold px-2.5 py-1 rounded-lg active:scale-95 transition shrink-0" data-i18n="copyLink">نسخ الرابط</button>
-            </div>
-        </div>
-
-        <!-- لوحة الإحصائيات -->
         <div class="bg-slate-800/90 border-t border-slate-700/80 px-3 py-2.5">
             <div class="max-w-3xl mx-auto grid grid-cols-4 gap-2 text-center">
                 <button onclick="setStatusFilter('expired')" class="bg-red-500/15 border border-red-500/40 rounded-xl p-1.5 active:scale-95 transition">
@@ -138,8 +147,6 @@
     </header>
 
     <main class="max-w-3xl mx-auto px-3 pt-4 space-y-4">
-
-        <!-- 🔍 خانة البحث مع زر المسح -->
         <div class="flex gap-2">
             <div class="relative flex-1">
                 <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2"></i>
@@ -149,17 +156,10 @@
                     <i data-lucide="x-circle" class="w-5 h-5"></i>
                 </button>
             </div>
-            <!-- 🎯 زر المسح في البحث (محسّن) -->
             <button onclick="startScanner('search')" data-i18n-title="cameraSearch" title="بحث بالكاميرا / QR Code" 
                 class="scan-btn-pulse bg-gradient-to-br from-emerald-600 to-emerald-700 text-white px-4 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition">
                 <i data-lucide="scan-line" class="w-6 h-6"></i>
             </button>
-        </div>
-
-        <!-- 💡 تلميح صغير يوضح وظيفة زر المسح -->
-        <div class="text-[10px] text-center text-slate-500 font-semibold -mt-2 flex items-center justify-center gap-1">
-            <i data-lucide="info" class="w-3 h-3"></i>
-            <span data-i18n="scanHint">اضغط زر المسح للبحث بالباركود أو QR Code</span>
         </div>
 
         <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="statusFilters">
@@ -198,6 +198,14 @@
         </button>
     </div>
 
+    <!-- 🔍 عارض الصور المكبّر -->
+    <div id="imageViewer" class="hidden fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4">
+        <button onclick="closeImageViewer()" class="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-2.5 rounded-full z-10 active:scale-90 transition">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <img id="viewerImage" src="" alt="Product" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
+    </div>
+
     <!-- Scanner Modal -->
     <div id="scannerModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex flex-col justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full mx-auto overflow-hidden shadow-2xl">
@@ -224,13 +232,13 @@
         </div>
     </div>
 
-    <!-- Add Modal -->
+    <!-- Add/Edit Modal -->
     <div id="addModal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-xs overflow-y-auto p-3 sm:p-6">
         <div class="bg-white rounded-3xl max-w-lg w-full mx-auto my-2 shadow-2xl overflow-hidden">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
                 <h2 class="font-extrabold text-base flex items-center gap-2">
                     <i data-lucide="package-plus" class="w-5 h-5 text-emerald-400"></i>
-                    <span data-i18n="addModalTitle">تسجيل تاريخ صلاحية صنف</span>
+                    <span id="modalTitle" data-i18n="addModalTitle">تسجيل تاريخ صلاحية صنف</span>
                 </h2>
                 <button onclick="closeAddModal()" class="bg-slate-800 p-1.5 rounded-xl text-slate-300 hover:text-white">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -238,6 +246,7 @@
             </div>
 
             <form id="productForm" onsubmit="saveBatch(event)" class="p-5 space-y-4">
+                <input type="hidden" id="editBatchId" value="">
                 <div id="autoFillBanner" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2">
                     <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600 shrink-0"></i>
                     <span data-i18n="autoFillMsg">تم التعرف على المنتج تلقائياً! أدخل تاريخ الانتهاء الجديد والكمية فقط.</span>
@@ -315,14 +324,14 @@
                 </div>
 
                 <div class="pt-2 flex gap-2.5">
-                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white font-extrabold py-3.5 rounded-2xl text-base shadow-lg shadow-emerald-600/20" data-i18n="saveBtn">حفظ الصنف</button>
+                    <button type="submit" id="saveBtnText" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white font-extrabold py-3.5 rounded-2xl text-base shadow-lg shadow-emerald-600/20" data-i18n="saveBtn">حفظ الصنف</button>
                     <button type="button" onclick="closeAddModal()" class="px-5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3.5 rounded-2xl text-sm" data-i18n="cancelBtn">إلغاء</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Backup Modal (محدث مع خيارات التصدير) -->
+    <!-- Backup Modal -->
     <div id="backupModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-md w-full my-4 overflow-hidden shadow-2xl">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
@@ -339,29 +348,29 @@
                     يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.
                 </p>
 
-                <!-- 📤 قسم التصدير -->
                 <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3">
                     <h4 class="font-extrabold text-sky-900 text-xs mb-2.5 flex items-center gap-1.5">
                         <i data-lucide="download" class="w-4 h-4 text-sky-600"></i>
                         <span data-i18n="exportSection">تصدير البيانات</span>
                     </h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <!-- Excel -->
+                        <!-- ⭐ تصدير Excel مع الصور -->
+                        <button onclick="exportExcelWithImages()" class="col-span-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition">
+                            <i data-lucide="image" class="w-5 h-5"></i>
+                            <span class="text-xs" data-i18n="exportExcelImagesBtn">Excel مع الصور 🖼️</span>
+                        </button>
                         <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
                             <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
                             <span class="text-[10px]" data-i18n="exportExcelBtn">Excel (XLSX)</span>
                         </button>
-                        <!-- CSV -->
                         <button onclick="exportCSV()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
                             <i data-lucide="file-text" class="w-5 h-5"></i>
                             <span class="text-[10px]" data-i18n="exportCSVBtn">CSV</span>
                         </button>
-                        <!-- JSON -->
                         <button onclick="exportData()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
                             <i data-lucide="file-json" class="w-5 h-5"></i>
                             <span class="text-[10px]" data-i18n="exportJSONBtn">JSON</span>
                         </button>
-                        <!-- Google Sheets -->
                         <button onclick="exportGoogleSheets()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 px-2 rounded-xl flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition">
                             <i data-lucide="table" class="w-5 h-5"></i>
                             <span class="text-[10px]" data-i18n="exportGoogleBtn">Google Sheets</span>
@@ -369,7 +378,6 @@
                     </div>
                 </div>
 
-                <!-- 📥 قسم الاستيراد -->
                 <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
                     <h4 class="font-extrabold text-emerald-900 text-xs mb-2.5 flex items-center gap-1.5">
                         <i data-lucide="upload" class="w-4 h-4 text-emerald-600"></i>
@@ -382,16 +390,9 @@
                     </label>
                 </div>
 
-                <!-- بيانات مضمّنة -->
                 <button onclick="loadEmbeddedData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition text-xs">
                     <i data-lucide="package-check" class="w-4 h-4"></i>
                     <span data-i18n="loadEmbeddedBtn">تحميل البيانات المضمّنة في الملف</span>
-                </button>
-
-                <!-- نسخ رابط الموقع -->
-                <button onclick="copySiteUrl()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-sm active:scale-95 transition text-xs">
-                    <i data-lucide="link" class="w-4 h-4"></i>
-                    <span data-i18n="copySiteUrlBtn">نسخ رابط الموقع للمشاركة</span>
                 </button>
 
                 <hr class="border-slate-200">
@@ -404,7 +405,7 @@
         </div>
     </div>
 
-    <!-- AI Modal (مختصر كما هو) -->
+    <!-- AI Modal -->
     <div id="aiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
         <div class="bg-white rounded-3xl max-w-2xl w-full mx-auto my-4 shadow-2xl overflow-hidden ai-glow">
             <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white px-5 py-4 flex items-center justify-between">
@@ -474,7 +475,7 @@
 
 <script>
 // ==========================================
-// 🔴 بياناتك المضمّنة — استبدلها ببياناتك الحقيقية
+// بياناتك المضمّنة
 // ==========================================
 const EMBEDDED_DATA = {
     version: 2,
@@ -483,14 +484,6 @@ const EMBEDDED_DATA = {
     catalog: {}
 };
 
-// ==========================================
-// رابط الموقع المنشور (للمشاركة)
-// ==========================================
-const SITE_URL = "";
-
-// ==========================================
-// Translation Dictionary — محدث
-// ==========================================
 const I18N = {
     ar: {
         appTitle: 'متتبع الصلاحية', appSubtitle: 'إدارة رفوف السوبر ماركت',
@@ -507,19 +500,21 @@ const I18N = {
         closeCamera: 'إغلاق الكاميرا والإدخال يدوياً',
         cameraError: 'تعذر الوصول للكاميرا. تأكد من إعطاء صلاحية الكاميرا.', cameraNotSupported: 'المتصفح لا يدعم الكاميرا.',
         addModalTitle: 'تسجيل تاريخ صلاحية صنف',
+        editModalTitle: 'تعديل بيانات الصنف',
         autoFillMsg: 'تم التعرف على المنتج تلقائياً! أدخل تاريخ الانتهاء الجديد والكمية فقط.',
         barcodeLabel: 'رقم الباركود (اختياري أو بالمسح)', barcodePlaceholder: 'امسح أو اكتب الرقم هنا...',
         scanBtn: 'مسح', photoLabel: 'صورة', takePhoto: 'التقط', removePhoto: 'حذف الصورة',
         nameLabel: 'اسم الصنف *', namePlaceholder: 'مثال: لبنة المراعي 400 غرام',
         categoryLabel: 'القسم', expiryLabel: 'تاريخ انتهاء الصلاحية *',
         qtyLabel: 'الكمية على الرف', alertDaysLabel: 'نبهني قبل (أيام)',
-        saveBtn: 'حفظ الصنف', cancelBtn: 'إلغاء',
+        saveBtn: 'حفظ الصنف', updateBtn: 'تحديث الصنف', cancelBtn: 'إلغاء',
         backupTitle: 'النسخ الاحتياطي وإدارة البيانات',
         backupInfo: 'يتم حفظ بياناتك محلياً. ننصح بتصدير نسخة احتياطية كل أسبوع.',
         exportSection: 'تصدير البيانات',
         importSection: 'استيراد البيانات',
         exportExcelBtn: 'Excel (XLSX)', exportCSVBtn: 'CSV',
         exportJSONBtn: 'JSON', exportGoogleBtn: 'Google Sheets',
+        exportExcelImagesBtn: 'Excel مع الصور 🖼️',
         exportBtn: 'تصدير نسخة احتياطية (JSON)', importBtn: 'استعادة من ملف (JSON/CSV/XLSX)',
         clearAllBtn: 'مسح جميع البيانات من التطبيق',
         loadEmbeddedBtn: 'تحميل البيانات المضمّنة في الملف',
@@ -539,10 +534,13 @@ const I18N = {
         daysLeftShort: (d) => `باقي ${d} يوم`, expiryDate: 'ينتهي في:', qty: 'الكمية:',
         dispose: 'تم التصريف', disposeConfirmTitle: 'تم تصريف الكمية؟',
         disposeConfirmMsg: (name) => `هل تريد إزالة "${name}" من قائمة المتابعة؟`,
+        editBtn: 'تعديل',
+        editSuccess: 'تم تحديث بيانات الصنف بنجاح',
         saveSuccess: 'تم حفظ الصنف بنجاح على الرف', removeSuccess: 'تمت إزالة الدفعة من القائمة',
         clearAllConfirmTitle: 'مسح جميع البيانات؟', clearAllConfirmMsg: 'سيتم حذف كافة المنتجات نهائياً. هل أنت متأكد؟',
         clearAllSuccess: 'تم مسح جميع البيانات', exportSuccess: 'تم تنزيل ملف النسخة الاحتياطية بنجاح',
         exportExcelSuccess: 'تم تصدير ملف Excel بنجاح',
+        exportExcelImagesSuccess: 'تم تصدير Excel مع الصور بنجاح! 🖼️',
         exportCSVSuccess: 'تم تصدير ملف CSV بنجاح',
         exportGoogleSuccess: 'تم تجهيز البيانات! الصقها في Google Sheets',
         importSuccess: (n) => `تمت استعادة ${n} صنف بنجاح!`, importInvalid: 'صيغة الملف غير صالحة',
@@ -560,7 +558,10 @@ const I18N = {
         aiActionRequired: 'إجراء مطلوب فوراً', aiActionSoon: 'إجراء قريب',
         aiActionMonitor: 'مراقبة', aiActionOk: 'سليم',
         draftRestored: 'تم استعادة مسودتك السابقة',
-        copiedToClipboard: 'تم النسخ إلى الحافظة!'
+        copiedToClipboard: 'تم النسخ إلى الحافظة!',
+        imageNoData: 'لا توجد صورة',
+        exportingImages: 'جاري تجهيز Excel مع الصور...',
+        viewImage: 'عرض الصورة'
     },
     en: {
         appTitle: 'Expiry Tracker', appSubtitle: 'Supermarket Shelf Management',
@@ -577,19 +578,21 @@ const I18N = {
         closeCamera: 'Close camera & enter manually',
         cameraError: 'Cannot access camera. Please grant camera permission.', cameraNotSupported: 'Browser does not support camera.',
         addModalTitle: 'Register Product Expiry',
+        editModalTitle: 'Edit Product Data',
         autoFillMsg: 'Product recognized automatically! Just enter new expiry date and quantity.',
         barcodeLabel: 'Barcode (optional or scan)', barcodePlaceholder: 'Scan or type barcode here...',
         scanBtn: 'Scan', photoLabel: 'Photo', takePhoto: 'Take', removePhoto: 'Remove Photo',
         nameLabel: 'Product Name *', namePlaceholder: 'e.g. Almarai Labneh 400g',
         categoryLabel: 'Category', expiryLabel: 'Expiry Date *',
         qtyLabel: 'Shelf Quantity', alertDaysLabel: 'Alert before (days)',
-        saveBtn: 'Save Product', cancelBtn: 'Cancel',
+        saveBtn: 'Save Product', updateBtn: 'Update Product', cancelBtn: 'Cancel',
         backupTitle: 'Backup & Data Management',
         backupInfo: 'Your data is stored locally. We recommend exporting a backup weekly.',
         exportSection: 'Export Data',
         importSection: 'Import Data',
         exportExcelBtn: 'Excel (XLSX)', exportCSVBtn: 'CSV',
         exportJSONBtn: 'JSON', exportGoogleBtn: 'Google Sheets',
+        exportExcelImagesBtn: 'Excel with Images 🖼️',
         exportBtn: 'Export Backup (JSON)', importBtn: 'Restore from File (JSON/CSV/XLSX)',
         clearAllBtn: 'Clear All Data',
         loadEmbeddedBtn: 'Load Embedded Data from File',
@@ -609,10 +612,13 @@ const I18N = {
         daysLeftShort: (d) => `${d}d left`, expiryDate: 'Expires:', qty: 'Qty:',
         dispose: 'Disposed', disposeConfirmTitle: 'Dispose quantity?',
         disposeConfirmMsg: (name) => `Remove "${name}" from tracking?`,
+        editBtn: 'Edit',
+        editSuccess: 'Product updated successfully',
         saveSuccess: 'Product saved successfully', removeSuccess: 'Batch removed from list',
         clearAllConfirmTitle: 'Clear all data?', clearAllConfirmMsg: 'All products will be permanently deleted. Are you sure?',
         clearAllSuccess: 'All data cleared', exportSuccess: 'Backup file downloaded successfully',
         exportExcelSuccess: 'Excel file exported successfully',
+        exportExcelImagesSuccess: 'Excel with images exported successfully! 🖼️',
         exportCSVSuccess: 'CSV file exported successfully',
         exportGoogleSuccess: 'Data ready! Paste it into Google Sheets',
         importSuccess: (n) => `Restored ${n} items successfully!`, importInvalid: 'Invalid file format',
@@ -630,13 +636,13 @@ const I18N = {
         aiActionRequired: 'Action Required Now', aiActionSoon: 'Action Soon',
         aiActionMonitor: 'Monitor', aiActionOk: 'Safe',
         draftRestored: 'Draft restored',
-        copiedToClipboard: 'Copied to clipboard!'
+        copiedToClipboard: 'Copied to clipboard!',
+        imageNoData: 'No image',
+        exportingImages: 'Preparing Excel with images...',
+        viewImage: 'View Image'
     }
 };
 
-// ==========================================
-// State
-// ==========================================
 const STORAGE_KEYS = {
     BATCHES: 'sm_expiry_batches_v1', CATALOG: 'sm_product_catalog_v1',
     INIT: 'sm_initialized_v1', LANG: 'sm_lang', THEME: 'sm_theme',
@@ -657,64 +663,18 @@ function t(key, ...args) {
     return val || key;
 }
 
-// ==========================================
-// Boot
-// ==========================================
 window.onload = function() {
     loadPreferences();
     loadData();
     applyLanguage();
     applyTheme();
     restoreFilters();
-    updateSiteUrlLabel();
     lucide.createIcons();
     renderBatches();
     triggerAlertCheck(false);
     bindFormDraft();
 };
 
-// ==========================================
-// Site URL
-// ==========================================
-function getSiteUrl() {
-    if (SITE_URL && SITE_URL.trim()) return SITE_URL.trim();
-    try {
-        if (window.location.protocol.startsWith('http')) {
-            return window.location.origin + window.location.pathname;
-        }
-    } catch (e) {}
-    return '';
-}
-
-function updateSiteUrlLabel() {
-    const el = document.getElementById('siteUrlLabel');
-    if (!el) return;
-    const url = getSiteUrl();
-    el.textContent = url || '—';
-    el.title = url || '';
-}
-
-function copySiteUrl() {
-    const url = getSiteUrl();
-    if (!url) { showToast(t('siteUrlEmpty'), 'warning'); return; }
-    copyToClipboard(url).then(() => showToast(t('siteUrlCopied'), 'success'))
-        .catch(() => showToast(t('siteUrlCopied'), 'warning'));
-}
-
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
-    return new Promise((resolve, reject) => {
-        const ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); resolve(); } catch (e) { reject(e); }
-        document.body.removeChild(ta);
-    });
-}
-
-// ==========================================
-// Preferences
-// ==========================================
 function loadPreferences() {
     currentLang = localStorage.getItem(STORAGE_KEYS.LANG) || 'ar';
     currentTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
@@ -765,9 +725,6 @@ function toggleTheme() {
     applyTheme();
 }
 
-// ==========================================
-// Filters
-// ==========================================
 function restoreFilters() {
     try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.FILTERS) || '{}');
@@ -786,9 +743,6 @@ function saveFilters() {
     }));
 }
 
-// ==========================================
-// Form Draft
-// ==========================================
 function bindFormDraft() {
     ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
         const el = document.getElementById(id);
@@ -797,6 +751,7 @@ function bindFormDraft() {
 }
 
 function saveFormDraft() {
+    if (document.getElementById('editBatchId').value) return; // لا تحفظ مسودة أثناء التعديل
     const draft = {};
     ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
         const el = document.getElementById(id);
@@ -823,23 +778,17 @@ function restoreFormDraft() {
 
 function clearFormDraft() { localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT); }
 
-// ==========================================
-// Data Loading
-// ==========================================
 function loadData() {
     try {
         const savedBatches = localStorage.getItem(STORAGE_KEYS.BATCHES);
         const savedCatalog = localStorage.getItem(STORAGE_KEYS.CATALOG);
         const isInitialized = localStorage.getItem(STORAGE_KEYS.INIT);
-
         if (savedBatches) batches = JSON.parse(savedBatches);
         if (savedCatalog) catalog = JSON.parse(savedCatalog);
-
         if (!isInitialized && batches.length === 0) {
             if (EMBEDDED_DATA && Array.isArray(EMBEDDED_DATA.batches) && EMBEDDED_DATA.batches.length > 0) {
                 batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
                 catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
-                console.log('✅ Loaded embedded data:', batches.length, 'batches');
             } else {
                 const today = new Date();
                 const formatDate = (offsetDays) => {
@@ -853,36 +802,26 @@ function loadData() {
                     { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '' }
                 ];
                 batches = sampleProducts;
-                sampleProducts.forEach(p => {
-                    catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays };
-                });
+                sampleProducts.forEach(p => { catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays }; });
             }
             saveData();
             localStorage.setItem(STORAGE_KEYS.INIT, 'true');
         }
-    } catch (err) {
-        console.error(err);
-        showToast(t('readError'), 'error');
-    }
+    } catch (err) { console.error(err); showToast(t('readError'), 'error'); }
 }
 
 function loadEmbeddedData() {
     if (!EMBEDDED_DATA || !Array.isArray(EMBEDDED_DATA.batches) || EMBEDDED_DATA.batches.length === 0) {
-        showToast(t('embeddedEmpty'), 'warning');
-        return;
+        showToast(t('embeddedEmpty'), 'warning'); return;
     }
     openConfirmDialog(
         currentLang === 'ar' ? 'تحميل البيانات المضمّنة؟' : 'Load embedded data?',
-        currentLang === 'ar'
-            ? `سيتم استبدال البيانات الحالية بـ ${EMBEDDED_DATA.batches.length} صنف من الملف. هل أنت متأكد؟`
-            : `Current data will be replaced with ${EMBEDDED_DATA.batches.length} items from the file. Continue?`,
+        currentLang === 'ar' ? `سيتم استبدال البيانات الحالية بـ ${EMBEDDED_DATA.batches.length} صنف من الملف.` : `Replace with ${EMBEDDED_DATA.batches.length} items?`,
         () => {
             batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
             catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
-            saveData();
-            localStorage.setItem(STORAGE_KEYS.INIT, 'true');
-            renderBatches();
-            closeBackupModal();
+            saveData(); localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+            renderBatches(); closeBackupModal();
             showToast(t('embeddedLoaded', batches.length), 'success');
         }
     );
@@ -895,9 +834,6 @@ function saveData() {
     } catch (err) { showToast(t('storageError'), 'error'); }
 }
 
-// ==========================================
-// Expiry Logic
-// ==========================================
 function getDaysRemaining(expiryDateStr) {
     const today = new Date(); today.setHours(0,0,0,0);
     const exp = new Date(expiryDateStr); exp.setHours(0,0,0,0);
@@ -928,9 +864,6 @@ function getCategoryLabel(catKey) {
     return c ? `${c.emoji} ${c[currentLang]}` : catKey;
 }
 
-// ==========================================
-// Rendering
-// ==========================================
 function renderBatches() {
     const listEl = document.getElementById('batchesList');
     const emptyEl = document.getElementById('emptyState');
@@ -966,7 +899,7 @@ function renderBatches() {
 
     listEl.innerHTML = filtered.map(item => {
         const imgHtml = item.image
-            ? `<img src="${item.image}" alt="${item.name}" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100">`
+            ? `<img src="${item.image}" alt="${item.name}" onclick="openImageViewer('${item.id}')" class="product-thumb w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100">`
             : `<div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400"><i data-lucide="package" class="w-7 h-7"></i></div>`;
         const barcodeHtml = item.barcode ? `<span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">${item.barcode}</span>` : '';
         return `
@@ -988,20 +921,66 @@ function renderBatches() {
                     </div>
                 </div>
             </div>
-            <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2">
+            <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
                 <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
                     <button onclick="updateBatchQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">-</button>
                     <span class="px-2.5 text-xs font-extrabold text-slate-800">${t('qty')} ${item.qty}</span>
                     <button onclick="updateBatchQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">+</button>
                 </div>
-                <button onclick="disposeBatch('${item.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-                    <span>${t('dispose')}</span>
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="openEditModal('${item.id}')" class="edit-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        <span>${t('editBtn')}</span>
+                    </button>
+                    <button onclick="disposeBatch('${item.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                        <span>${t('dispose')}</span>
+                    </button>
+                </div>
             </div>
         </div>`;
     }).join('');
 
+    lucide.createIcons();
+}
+
+// 🔍 عارض الصور
+function openImageViewer(batchId) {
+    const item = batches.find(b => b.id === batchId);
+    if (!item || !item.image) return;
+    document.getElementById('viewerImage').src = item.image;
+    document.getElementById('imageViewer').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageViewer() {
+    document.getElementById('imageViewer').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// ✏️ فتح نافذة التعديل
+function openEditModal(batchId) {
+    const item = batches.find(b => b.id === batchId);
+    if (!item) return;
+    
+    document.getElementById('editBatchId').value = item.id;
+    document.getElementById('inputBarcode').value = item.barcode || '';
+    document.getElementById('inputName').value = item.name;
+    document.getElementById('inputCategory').value = item.category;
+    document.getElementById('inputExpiry').value = item.expiryDate;
+    document.getElementById('inputQty').value = item.qty;
+    document.getElementById('inputAlertDays').value = item.alertDays;
+    
+    if (item.image) setPreviewImage(item.image);
+    else clearImage();
+    
+    document.getElementById('autoFillBanner').classList.add('hidden');
+    document.getElementById('modalTitle').textContent = t('editModalTitle');
+    document.getElementById('saveBtnText').textContent = t('updateBtn');
+    document.getElementById('daysPreviewText').textContent = '';
+    updateDaysPreview();
+    
+    document.getElementById('addModal').classList.remove('hidden');
     lucide.createIcons();
 }
 
@@ -1042,9 +1021,6 @@ function clearSearch() {
     renderBatches();
 }
 
-// ==========================================
-// Scanner — محسّن لدعم QR والباركود
-// ==========================================
 function startScanner(mode) {
     scannerMode = mode;
     const modal = document.getElementById('scannerModal');
@@ -1056,77 +1032,39 @@ function startScanner(mode) {
 
     try {
         html5QrcodeScanner = new Html5Qrcode("reader");
-        // إعدادات محسّنة لدعم الباركود و QR Code معاً
         const config = { 
             fps: 15, 
-            qrbox: function(viewfinderWidth, viewfinderHeight) {
-                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                const qrboxSize = Math.floor(minEdge * 0.75);
-                return { width: qrboxSize, height: qrboxSize };
-            },
-            aspectRatio: 1.0,
-            disableFlip: false,
-            experimentalFeatures: {
-                useBarCodeDetectorIfSupported: true  // يستخدم API المتصفح الأصلي للكشف (أسرع وأدق)
-            },
+            qrbox: function(w, h) { const m = Math.min(w, h); const s = Math.floor(m * 0.75); return { width: s, height: s }; },
+            aspectRatio: 1.0, disableFlip: false,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
             formatsToSupport: [
-                Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.CODABAR,
-                Html5QrcodeSupportedFormats.DATA_MATRIX
+                Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E, Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.CODABAR, Html5QrcodeSupportedFormats.DATA_MATRIX
             ]
         };
-        
         html5QrcodeScanner.start({ facingMode: "environment" }, config,
             (decodedText) => {
-                playBeep(); 
-                stopScanner();
+                playBeep(); stopScanner();
                 if (scannerMode === 'search') {
-                    // تعبئة خانة البحث
                     const searchInput = document.getElementById('searchInput');
-                    searchInput.value = decodedText;
-                    saveFilters(); 
-                    renderBatches();
-                    // إظهار عدد النتائج
-                    const resultsCount = batches.filter(b => 
-                        b.name.toLowerCase().includes(decodedText.toLowerCase()) || 
-                        (b.barcode && b.barcode.toLowerCase().includes(decodedText.toLowerCase()))
-                    ).length;
-                    if (resultsCount > 0) {
-                        showToast(`✅ ${currentLang === 'ar' ? 'تم العثور على' : 'Found'} ${resultsCount} ${currentLang === 'ar' ? 'صنف' : 'items'}`, 'success');
-                    } else {
-                        showToast(`⚠️ ${currentLang === 'ar' ? 'لا توجد نتائج للباركود:' : 'No results for:'} ${decodedText}`, 'warning');
-                    }
+                    searchInput.value = decodedText; saveFilters(); renderBatches();
+                    const resultsCount = batches.filter(b => b.name.toLowerCase().includes(decodedText.toLowerCase()) || (b.barcode && b.barcode.toLowerCase().includes(decodedText.toLowerCase()))).length;
+                    if (resultsCount > 0) showToast(`✅ ${currentLang === 'ar' ? 'تم العثور على' : 'Found'} ${resultsCount} ${currentLang === 'ar' ? 'صنف' : 'items'}`, 'success');
+                    else showToast(`⚠️ ${currentLang === 'ar' ? 'لا توجد نتائج للباركود:' : 'No results for:'} ${decodedText}`, 'warning');
                 } else {
-                    // تعبئة نموذج الإضافة
                     document.getElementById('inputBarcode').value = decodedText;
                     handleBarcodeLookup(decodedText);
                     saveFormDraft();
-                    // عرض رسالة نجاح
-                    if (catalog[decodedText]) {
-                        showToast(currentLang === 'ar' ? '✅ تم التعرف على المنتج!' : '✅ Product recognized!', 'success');
-                    } else {
-                        showToast(currentLang === 'ar' ? '⚠️ منتج جديد، أدخل البيانات' : '⚠️ New product, enter details', 'warning');
-                    }
+                    if (catalog[decodedText]) showToast(currentLang === 'ar' ? '✅ تم التعرف على المنتج!' : '✅ Product recognized!', 'success');
+                    else showToast(currentLang === 'ar' ? '⚠️ منتج جديد، أدخل البيانات' : '⚠️ New product, enter details', 'warning');
                 }
             }, 
-            (errorMessage) => { /* تجاهل أخطاء المسح المستمرة */ }
-        ).catch((err) => { 
-            console.error(err);
-            errorEl.textContent = t('cameraError'); 
-            errorEl.classList.remove('hidden'); 
-        });
-    } catch (e) { 
-        console.error(e);
-        errorEl.textContent = t('cameraNotSupported'); 
-        errorEl.classList.remove('hidden'); 
-    }
+            (errorMessage) => {}
+        ).catch((err) => { console.error(err); errorEl.textContent = t('cameraError'); errorEl.classList.remove('hidden'); });
+    } catch (e) { console.error(e); errorEl.textContent = t('cameraNotSupported'); errorEl.classList.remove('hidden'); }
 }
 
 function stopScanner() {
@@ -1136,12 +1074,10 @@ function stopScanner() {
     }
 }
 
-// ==========================================
-// Catalog / Image
-// ==========================================
 function handleBarcodeLookup(barcode) {
     const cleanCode = barcode.trim();
     const banner = document.getElementById('autoFillBanner');
+    if (document.getElementById('editBatchId').value) return; // تجاهل في وضع التعديل
     if (cleanCode && catalog[cleanCode]) {
         const saved = catalog[cleanCode];
         document.getElementById('inputName').value = saved.name || '';
@@ -1192,13 +1128,13 @@ function clearImage() {
     document.getElementById('removeImgBtn').classList.add('hidden');
 }
 
-// ==========================================
-// Form
-// ==========================================
 function openAddModal() {
     document.getElementById('productForm').reset();
+    document.getElementById('editBatchId').value = '';
     document.getElementById('autoFillBanner').classList.add('hidden');
     document.getElementById('daysPreviewText').textContent = '';
+    document.getElementById('modalTitle').textContent = t('addModalTitle');
+    document.getElementById('saveBtnText').textContent = t('saveBtn');
     clearImage();
     const hasDraft = restoreFormDraft();
     document.getElementById('addModal').classList.remove('hidden');
@@ -1206,9 +1142,13 @@ function openAddModal() {
     if (hasDraft) showToast(t('draftRestored'), 'success');
 }
 
-function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
+function closeAddModal() { 
+    document.getElementById('addModal').classList.add('hidden');
+    document.getElementById('editBatchId').value = '';
+}
 
 function suggestAlertDays() {
+    if (document.getElementById('editBatchId').value) return;
     const cat = document.getElementById('inputCategory').value;
     const input = document.getElementById('inputAlertDays');
     if (cat === 'dairy') input.value = 3;
@@ -1233,8 +1173,10 @@ function updateDaysPreview() {
     else { label.textContent = t('daysRemaining', days); label.className = 'text-xs font-extrabold text-emerald-700'; }
 }
 
+// 💾 حفظ / تحديث
 function saveBatch(e) {
     e.preventDefault();
+    const editId = document.getElementById('editBatchId').value;
     const barcode = document.getElementById('inputBarcode').value.trim();
     const name = document.getElementById('inputName').value.trim();
     const category = document.getElementById('inputCategory').value;
@@ -1243,12 +1185,23 @@ function saveBatch(e) {
     const alertDays = parseInt(document.getElementById('inputAlertDays').value) || 7;
     if (!name || !expiryDate) return;
 
-    const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
-    batches.push(newBatch);
-    if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
-
-    saveData(); clearFormDraft(); closeAddModal(); renderBatches();
-    showToast(t('saveSuccess'), 'success');
+    if (editId) {
+        // ✏️ وضع التعديل
+        const idx = batches.findIndex(b => b.id === editId);
+        if (idx !== -1) {
+            batches[idx] = { ...batches[idx], barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
+            if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
+            saveData(); closeAddModal(); renderBatches();
+            showToast(t('editSuccess'), 'success');
+        }
+    } else {
+        // ➕ وضع الإضافة
+        const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
+        batches.push(newBatch);
+        if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
+        saveData(); clearFormDraft(); closeAddModal(); renderBatches();
+        showToast(t('saveSuccess'), 'success');
+    }
 }
 
 function updateBatchQty(id, delta) {
@@ -1269,9 +1222,6 @@ function disposeBatch(id) {
     });
 }
 
-// ==========================================
-// Alerts
-// ==========================================
 function playBeep() {
     try { if (typeof Tone !== 'undefined') { const synth = new Tone.Synth().toDestination(); synth.triggerAttackRelease("C6", "16n"); } } catch (e) {}
 }
@@ -1301,13 +1251,9 @@ function triggerAlertCheck(manualClick = false) {
     }
 }
 
-// ==========================================
-// Backup & Export
-// ==========================================
 function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); lucide.createIcons(); }
 function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
 
-// 📊 تحضير البيانات للتصدير
 function prepareExportData() {
     return batches.map(b => {
         const st = getBatchStatus(b);
@@ -1324,31 +1270,319 @@ function prepareExportData() {
     });
 }
 
-// 📗 تصدير Excel (XLSX)
-function exportExcel() {
+// ==========================================
+// ⭐ تصدير Excel مع الصور (XLSX + JSZip)
+// ==========================================
+function exportExcelWithImages() {
     try {
         if (batches.length === 0) {
             showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
             return;
         }
+
+        showToast(t('exportingImages'), 'warning');
+
+        const headers = currentLang === 'ar' 
+            ? ['الصورة', 'الباركود', 'اسم الصنف', 'القسم', 'تاريخ الانتهاء', 'الكمية', 'أيام التنبيه', 'الحالة', 'الأيام المتبقية']
+            : ['Image', 'Barcode', 'Product Name', 'Category', 'Expiry Date', 'Quantity', 'Alert Days', 'Status', 'Days Remaining'];
+
+        // تجهيز البيانات مع الصور
+        const rows = batches.map(b => {
+            const st = getBatchStatus(b);
+            return {
+                image: b.image || '',
+                barcode: b.barcode || '',
+                name: b.name,
+                category: getCategoryLabel(b.category),
+                expiryDate: b.expiryDate,
+                qty: b.qty,
+                alertDays: b.alertDays,
+                status: st.label,
+                days: st.days
+            };
+        });
+
+        // إنشاء ملف Excel يدوياً باستخدام JSZip لدعم الصور
+        const zip = new JSZip();
+        
+        // إضافة [Content_Types].xml
+        const imageExtensions = {};
+        let imageCount = 0;
+        rows.forEach((row, idx) => {
+            if (row.image && row.image.startsWith('data:image')) {
+                imageCount++;
+                const ext = row.image.split(';')[0].split('/')[1] || 'jpeg';
+                imageExtensions[`image${idx}`] = ext === 'jpeg' ? 'jpeg' : ext;
+            }
+        });
+
+        const contentTypesOverrides = Object.keys(imageExtensions).map(key => 
+            `<Override PartName="/xl/media/${key}.${imageExtensions[key]}" ContentType="image/${imageExtensions[key]}"/>`
+        ).join('');
+
+        zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="jpeg" ContentType="image/jpeg"/>
+<Default Extension="jpg" ContentType="image/jpeg"/>
+<Default Extension="png" ContentType="image/png"/>
+${contentTypesOverrides}
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+</Types>`);
+
+        // _rels/.rels
+        zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+
+        // xl/workbook.xml
+        zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Products" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`);
+
+        // xl/_rels/workbook.xml.rels
+        zip.file('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="drawings/drawing1.xml"/>
+</Relationships>`);
+
+        // xl/styles.xml - تنسيقات
+        zip.file('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="3">
+<font><sz val="11"/><name val="Cairo"/></font>
+<font><b/><sz val="12"/><name val="Cairo"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Cairo"/></font>
+</fonts>
+<fills count="3">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF059669"/></patternFill></fill>
+</fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="2">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+</cellXfs>
+</styleSheet>`);
+
+        // xl/sharedStrings.xml
+        const allStrings = [];
+        const stringIndex = {};
+        function addString(s) {
+            s = String(s || '');
+            if (!(s in stringIndex)) {
+                stringIndex[s] = allStrings.length;
+                allStrings.push(s);
+            }
+            return stringIndex[s];
+        }
+        
+        // أضف كل النصوص
+        headers.forEach(h => addString(h));
+        rows.forEach(r => {
+            addString(r.barcode);
+            addString(r.name);
+            addString(r.category);
+            addString(r.expiryDate);
+            addString(r.status);
+        });
+
+        zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${allStrings.length}" uniqueCount="${allStrings.length}">
+${allStrings.map(s => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('')}
+</sst>`);
+
+        // xl/worksheets/sheet1.xml
+        const rowHeight = 90;
+        let sheetData = '<sheetData>';
+        
+        // Header row
+        sheetData += `<row r="1" ht="30" customHeight="1">`;
+        headers.forEach((h, colIdx) => {
+            const cellRef = getCellRef(colIdx, 1);
+            sheetData += `<c r="${cellRef}" t="s" s="1"><v>${stringIndex[h]}</v></c>`;
+        });
+        sheetData += `</row>`;
+
+        // Data rows
+        rows.forEach((row, rowIdx) => {
+            const r = rowIdx + 2;
+            sheetData += `<row r="${r}" ht="${rowHeight}" customHeight="1">`;
+            // عمود الصورة (فارغ، سيُملأ بالصورة)
+            sheetData += `<c r="A${r}" t="inlineStr"><is><t></t></is></c>`;
+            // باقي الأعمدة
+            sheetData += `<c r="B${r}" t="s"><v>${stringIndex[row.barcode]}</v></c>`;
+            sheetData += `<c r="C${r}" t="s"><v>${stringIndex[row.name]}</v></c>`;
+            sheetData += `<c r="D${r}" t="s"><v>${stringIndex[row.category]}</v></c>`;
+            sheetData += `<c r="E${r}" t="s"><v>${stringIndex[row.expiryDate]}</v></c>`;
+            sheetData += `<c r="F${r}"><v>${row.qty}</v></c>`;
+            sheetData += `<c r="G${r}"><v>${row.alertDays}</v></c>`;
+            sheetData += `<c r="H${r}" t="s"><v>${stringIndex[row.status]}</v></c>`;
+            sheetData += `<c r="I${r}"><v>${row.days}</v></c>`;
+            sheetData += `</row>`;
+        });
+        
+        sheetData += '</sheetData>';
+
+        // أعمدة العرض
+        const cols = `<cols>
+<col min="1" max="1" width="12" customWidth="1"/>
+<col min="2" max="2" width="18" customWidth="1"/>
+<col min="3" max="3" width="30" customWidth="1"/>
+<col min="4" max="4" width="18" customWidth="1"/>
+<col min="5" max="5" width="15" customWidth="1"/>
+<col min="6" max="6" width="10" customWidth="1"/>
+<col min="7" max="7" width="12" customWidth="1"/>
+<col min="8" max="8" width="20" customWidth="1"/>
+<col min="9" max="9" width="15" customWidth="1"/>
+</cols>`;
+
+        zip.file('xl/worksheets/sheet1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<dimension ref="A1:I${rows.length + 1}"/>
+${cols}
+${sheetData}
+<drawing r:id="rId4"/>
+</worksheet>`);
+
+        // xl/worksheets/_rels/sheet1.xml.rels
+        zip.file('xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+</Relationships>`);
+
+        // xl/drawings/drawing1.xml + الصور
+        let drawingAnchors = '';
+        let imageRelId = 1;
+        const drawingRels = [];
+
+        rows.forEach((row, rowIdx) => {
+            if (row.image && row.image.startsWith('data:image')) {
+                const mimeMatch = row.image.match(/data:image\/(\w+);base64,/);
+                if (!mimeMatch) return;
+                let ext = mimeMatch[1];
+                if (ext === 'jpeg') ext = 'jpeg';
+                const base64Data = row.image.split(',')[1];
+                const imgName = `image${rowIdx}`;
+                
+                // إضافة الصورة كملف
+                zip.file(`xl/media/${imgName}.${ext}`, base64Data, { base64: true });
+                
+                // إضافة العلاقة
+                drawingRels.push({
+                    id: `rId${imageRelId}`,
+                    target: `../media/${imgName}.${ext}`
+                });
+
+                const r = rowIdx + 2;
+                drawingAnchors += `<xdr:twoCellAnchor editAs="oneCell">
+<xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r - 1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+<xdr:to><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+<xdr:pic>
+<xdr:nvPicPr>
+<xdr:cNvPr id="${rowIdx + 2}" name="Product Image ${rowIdx + 1}"/>
+<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>
+</xdr:nvPicPr>
+<xdr:blipFill>
+<a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId${imageRelId}"/>
+<a:stretch><a:fillRect/></a:stretch>
+</xdr:blipFill>
+<xdr:spPr>
+<a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="952500"/></a:xfrm>
+<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+</xdr:spPr>
+</xdr:pic>
+<xdr:clientData/>
+</xdr:twoCellAnchor>`;
+
+                imageRelId++;
+            }
+        });
+
+        // إذا لا توجد صور، أنشئ drawing فارغ
+        if (drawingAnchors === '') {
+            drawingAnchors = `<xdr:twoCellAnchor editAs="oneCell">
+<xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+<xdr:to><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+<xdr:clientData/>
+</xdr:twoCellAnchor>`;
+        }
+
+        zip.file('xl/drawings/drawing1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+${drawingAnchors}
+</xdr:wsDr>`);
+
+        // xl/drawings/_rels/drawing1.xml.rels
+        if (drawingRels.length > 0) {
+            zip.file('xl/drawings/_rels/drawing1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${drawingRels.map(rel => `<Relationship Id="${rel.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${rel.target}"/>`).join('')}
+</Relationships>`);
+        } else {
+            zip.file('xl/drawings/_rels/drawing1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`);
+        }
+
+        // إنشاء الملف وتنزيله
+        zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }).then(content => {
+            const dateTag = new Date().toISOString().split('T')[0];
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `supermarket-expiry-with-images-${dateTag}.xlsx`;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+            showToast(t('exportExcelImagesSuccess'), 'success');
+        }).catch(err => {
+            console.error(err);
+            showToast('Export error', 'error');
+        });
+
+    } catch (err) {
+        console.error(err);
+        showToast('Export error', 'error');
+    }
+}
+
+function escapeXml(str) {
+    return String(str).replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+}
+
+function getCellRef(col, row) {
+    let s = '';
+    let c = col;
+    while (c >= 0) {
+        s = String.fromCharCode(65 + (c % 26)) + s;
+        c = Math.floor(c / 26) - 1;
+    }
+    return s + row;
+}
+
+// تصدير Excel العادي
+function exportExcel() {
+    try {
+        if (batches.length === 0) { showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
         const data = prepareExportData();
         const worksheet = XLSX.utils.json_to_sheet(data);
-        
-        // ضبط عرض الأعمدة
         const colWidths = Object.keys(data[0] || {}).map(() => ({ wch: 18 }));
         worksheet['!cols'] = colWidths;
-        
-        // إضافة فلتر
-        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range({
-            s: { c: 0, r: 0 },
-            e: { c: Object.keys(data[0] || {}).length - 1, r: data.length }
-        })};
-        
+        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: Object.keys(data[0] || {}).length - 1, r: data.length } }) };
         const workbook = XLSX.utils.book_new();
-        const sheetName = currentLang === 'ar' ? 'المنتجات' : 'Products';
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-        
-        // ورقة إضافية للإحصائيات
+        XLSX.utils.book_append_sheet(workbook, worksheet, currentLang === 'ar' ? 'المنتجات' : 'Products');
         const stats = [
             { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statExpired'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'expired').length },
             { [currentLang === 'ar' ? 'الحالة' : 'Status']: t('statDanger'), [currentLang === 'ar' ? 'العدد' : 'Count']: batches.filter(b => getBatchStatus(b).key === 'danger').length },
@@ -1359,42 +1593,28 @@ function exportExcel() {
         const statsSheet = XLSX.utils.json_to_sheet(stats);
         statsSheet['!cols'] = [{ wch: 18 }, { wch: 10 }];
         XLSX.utils.book_append_sheet(workbook, statsSheet, currentLang === 'ar' ? 'الإحصائيات' : 'Statistics');
-        
         const dateTag = new Date().toISOString().split('T')[0];
         XLSX.writeFile(workbook, `supermarket-expiry-${dateTag}.xlsx`);
         showToast(t('exportExcelSuccess'), 'success');
-    } catch (err) {
-        console.error(err);
-        showToast(t('exportError') || 'Export error', 'error');
-    }
+    } catch (err) { console.error(err); showToast('Export error', 'error'); }
 }
 
-// 📄 تصدير CSV
 function exportCSV() {
     try {
-        if (batches.length === 0) {
-            showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
-            return;
-        }
+        if (batches.length === 0) { showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
         const data = prepareExportData();
-        // إضافة BOM لدعم العربية في Excel
         const csv = '\uFEFF' + XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(data));
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         const dateTag = new Date().toISOString().split('T')[0];
-        a.href = url;
-        a.download = `supermarket-expiry-${dateTag}.csv`;
+        a.href = url; a.download = `supermarket-expiry-${dateTag}.csv`;
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
         showToast(t('exportCSVSuccess'), 'success');
-    } catch (err) {
-        console.error(err);
-        showToast('CSV export error', 'error');
-    }
+    } catch (err) { console.error(err); showToast('CSV export error', 'error'); }
 }
 
-// 📋 تصدير JSON (الطريقة الأصلية)
 function exportData() {
     const payload = { version: 2, exportedAt: new Date().toISOString(), batches, catalog };
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
@@ -1406,57 +1626,36 @@ function exportData() {
     showToast(t('exportSuccess'), 'success');
 }
 
-// 🔷 تصدير إلى Google Sheets — يفتح Google Sheets وينسخ البيانات
 function exportGoogleSheets() {
-    if (batches.length === 0) {
-        showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
-        return;
-    }
+    if (batches.length === 0) { showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
     try {
         const data = prepareExportData();
         const headers = Object.keys(data[0] || {});
         const rows = data.map(row => headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join('\t'));
         const tsv = [headers.join('\t'), ...rows].join('\n');
-
-        // نسخ البيانات إلى الحافظة بصيغة TSV (متوافقة مع Google Sheets)
         copyToClipboard(tsv).then(() => {
-            // فتح Google Sheets في نافذة جديدة
             const win = window.open('https://sheets.new', '_blank');
-            if (!win) {
-                showToast(currentLang === 'ar' 
-                    ? 'تم نسخ البيانات! لكن يجب السماح بالنوافذ المنبثقة' 
-                    : 'Data copied! But please allow popups', 'warning');
-                return;
-            }
-            showToast(currentLang === 'ar' 
-                ? '📋 تم نسخ البيانات! اضغط Ctrl+V في Google Sheets' 
-                : '📋 Data copied! Press Ctrl+V in Google Sheets', 'success');
+            if (!win) { showToast(currentLang === 'ar' ? 'تم نسخ البيانات! لكن يجب السماح بالنوافذ المنبثقة' : 'Data copied! But please allow popups', 'warning'); return; }
+            showToast(currentLang === 'ar' ? '📋 تم نسخ البيانات! اضغط Ctrl+V في Google Sheets' : '📋 Data copied! Press Ctrl+V in Google Sheets', 'success');
             closeBackupModal();
         }).catch(() => {
-            // خطة بديلة: تنزيل الملف
             const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             const dateTag = new Date().toISOString().split('T')[0];
-            a.href = url;
-            a.download = `supermarket-expiry-${dateTag}.tsv`;
+            a.href = url; a.download = `supermarket-expiry-${dateTag}.tsv`;
             document.body.appendChild(a); a.click(); a.remove();
             URL.revokeObjectURL(url);
             showToast(currentLang === 'ar' ? 'تم تنزيل ملف TSV لـ Google Sheets' : 'TSV file downloaded for Google Sheets', 'success');
         });
-    } catch (err) {
-        console.error(err);
-        showToast('Google Sheets export error', 'error');
-    }
+    } catch (err) { console.error(err); showToast('Google Sheets export error', 'error'); }
 }
 
-// 📥 استيراد من JSON / CSV / XLSX
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
     const ext = file.name.split('.').pop().toLowerCase();
     const reader = new FileReader();
-
     if (ext === 'json') {
         reader.onload = function(e) {
             try {
@@ -1477,13 +1676,7 @@ function importData(event) {
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(firstSheet);
-                
-                if (rows.length === 0) {
-                    showToast(t('importInvalid'), 'error');
-                    return;
-                }
-                
-                // تحويل الصفوف إلى batches
+                if (rows.length === 0) { showToast(t('importInvalid'), 'error'); return; }
                 const importedBatches = rows.map((row, idx) => {
                     const barcode = row['الباركود'] || row['Barcode'] || row['barcode'] || '';
                     const name = row['اسم الصنف'] || row['Product Name'] || row['name'] || row['Name'] || '';
@@ -1491,8 +1684,6 @@ function importData(event) {
                     const expiryDate = row['تاريخ الانتهاء'] || row['Expiry Date'] || row['expiryDate'] || row['Expiry'] || '';
                     const qty = parseInt(row['الكمية'] || row['Quantity'] || row['qty'] || 1) || 1;
                     const alertDays = parseInt(row['أيام التنبيه'] || row['Alert Days'] || row['alertDays'] || 7) || 7;
-                    
-                    // استخراج مفتاح القسم من التسمية
                     let category = 'other';
                     const catLower = String(categoryLabel).toLowerCase();
                     if (catLower.includes('ألبان') || catLower.includes('dairy')) category = 'dairy';
@@ -1500,50 +1691,25 @@ function importData(event) {
                     else if (catLower.includes('مشروب') || catLower.includes('drink')) category = 'drinks';
                     else if (catLower.includes('حلو') || catLower.includes('sweet')) category = 'sweets';
                     else if (catLower.includes('مجمد') || catLower.includes('frozen')) category = 'frozen';
-                    
                     if (!name) return null;
-                    
-                    return {
-                        id: 'batch-' + Date.now() + '-' + idx,
-                        barcode: String(barcode),
-                        name: String(name),
-                        category: category,
-                        expiryDate: String(expiryDate),
-                        qty: qty,
-                        alertDays: alertDays,
-                        image: ''
-                    };
+                    return { id: 'batch-' + Date.now() + '-' + idx, barcode: String(barcode), name: String(name), category, expiryDate: String(expiryDate), qty, alertDays, image: '' };
                 }).filter(Boolean);
-
-                if (importedBatches.length === 0) {
-                    showToast(t('importInvalid'), 'error');
-                    return;
-                }
-
+                if (importedBatches.length === 0) { showToast(t('importInvalid'), 'error'); return; }
                 openConfirmDialog(
                     currentLang === 'ar' ? 'استيراد البيانات؟' : 'Import data?',
-                    currentLang === 'ar' 
-                        ? `سيتم استبدال البيانات الحالية بـ ${importedBatches.length} صنف. هل أنت متأكد؟`
-                        : `Current data will be replaced with ${importedBatches.length} items. Continue?`,
+                    currentLang === 'ar' ? `سيتم استبدال البيانات الحالية بـ ${importedBatches.length} صنف.` : `Replace with ${importedBatches.length} items?`,
                     () => {
                         batches = importedBatches;
                         catalog = {};
-                        importedBatches.forEach(b => {
-                            if (b.barcode) catalog[b.barcode] = { name: b.name, category: b.category, image: b.image, alertDays: b.alertDays };
-                        });
+                        importedBatches.forEach(b => { if (b.barcode) catalog[b.barcode] = { name: b.name, category: b.category, image: b.image, alertDays: b.alertDays }; });
                         saveData(); renderBatches(); closeBackupModal();
                         showToast(t('importSuccess', batches.length), 'success');
                     }
                 );
-            } catch (err) { 
-                console.error(err);
-                showToast(t('importError'), 'error'); 
-            }
+            } catch (err) { console.error(err); showToast(t('importError'), 'error'); }
         };
         reader.readAsArrayBuffer(file);
-    } else {
-        showToast(t('importInvalid'), 'error');
-    }
+    } else showToast(t('importInvalid'), 'error');
 }
 
 function requestClearAll() {
@@ -1555,9 +1721,6 @@ function requestClearAll() {
     });
 }
 
-// ==========================================
-// AI Assistant (كما هو)
-// ==========================================
 function openAIModal() { document.getElementById('aiModal').classList.remove('hidden'); document.getElementById('aiContent').innerHTML = ''; lucide.createIcons(); }
 function closeAIModal() { document.getElementById('aiModal').classList.add('hidden'); }
 
@@ -1580,37 +1743,18 @@ function aiCard(icon, title, body, color = 'purple') {
 
 function runAIAnalysis() {
     showAILoading(() => {
-        if (batches.length === 0) {
-            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAnalysisTitle'), t('aiNoData'), 'slate');
-            lucide.createIcons(); return;
-        }
+        if (batches.length === 0) { document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAnalysisTitle'), t('aiNoData'), 'slate'); lucide.createIcons(); return; }
         const counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
         let totalQty = 0; const catCount = {};
-        batches.forEach(b => {
-            const st = getBatchStatus(b);
-            counts[st.key]++; totalQty += b.qty;
-            catCount[b.category] = (catCount[b.category] || 0) + b.qty;
-        });
+        batches.forEach(b => { const st = getBatchStatus(b); counts[st.key]++; totalQty += b.qty; catCount[b.category] = (catCount[b.category] || 0) + b.qty; });
         const riskRate = Math.round(((counts.expired + counts.danger) / batches.length) * 100);
         const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
         const html = `${aiCard('bar-chart-3', t('aiAnalysisTitle'), `
             <div class="grid grid-cols-2 gap-2 mt-1">
-                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
-                    <div class="text-lg font-extrabold text-purple-700">${batches.length}</div>
-                    <div class="text-[10px]">${t('aiTotal')}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
-                    <div class="text-lg font-extrabold text-purple-700">${totalQty}</div>
-                    <div class="text-[10px]">${t('aiTotalQty')}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
-                    <div class="text-lg font-extrabold text-purple-700">${Object.keys(catCount).length}</div>
-                    <div class="text-[10px]">${t('aiCategories')}</div>
-                </div>
-                <div class="bg-white rounded-lg p-2 text-center border border-purple-100">
-                    <div class="text-lg font-extrabold ${riskRate > 30 ? 'text-red-600' : 'text-emerald-600'}">${riskRate}%</div>
-                    <div class="text-[10px]">${t('aiRiskRate')}</div>
-                </div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold text-purple-700">${batches.length}</div><div class="text-[10px]">${t('aiTotal')}</div></div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold text-purple-700">${totalQty}</div><div class="text-[10px]">${t('aiTotalQty')}</div></div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold text-purple-700">${Object.keys(catCount).length}</div><div class="text-[10px]">${t('aiCategories')}</div></div>
+                <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold ${riskRate > 30 ? 'text-red-600' : 'text-emerald-600'}">${riskRate}%</div><div class="text-[10px]">${t('aiRiskRate')}</div></div>
             </div>
             ${topCat ? `<p class="mt-2 text-[11px]">📦 ${getCategoryLabel(topCat[0])}: <b>${topCat[1]}</b></p>` : ''}
         `, 'purple')}`;
@@ -1621,10 +1765,7 @@ function runAIAnalysis() {
 
 function runAIPriority() {
     showAILoading(() => {
-        if (batches.length === 0) {
-            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiPriorityTitle'), t('aiNoData'), 'slate');
-            lucide.createIcons(); return;
-        }
+        if (batches.length === 0) { document.getElementById('aiContent').innerHTML = aiCard('info', t('aiPriorityTitle'), t('aiNoData'), 'slate'); lucide.createIcons(); return; }
         const enriched = batches.map(b => ({ ...b, st: getBatchStatus(b) })).sort((a, b) => a.st.days - b.st.days);
         const top5 = enriched.slice(0, 5);
         const html = aiCard('list-ordered', t('aiPriorityTitle'), `
@@ -1667,10 +1808,7 @@ function runAIReport() {
 
 function runAIAdvice() {
     showAILoading(() => {
-        if (batches.length === 0) {
-            document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAdviceTitle'), t('aiNoData'), 'slate');
-            lucide.createIcons(); return;
-        }
+        if (batches.length === 0) { document.getElementById('aiContent').innerHTML = aiCard('info', t('aiAdviceTitle'), t('aiNoData'), 'slate'); lucide.createIcons(); return; }
         const tips = [];
         let expired = 0, danger = 0;
         batches.forEach(b => { const k = getBatchStatus(b).key; if (k === 'expired') expired++; if (k === 'danger') danger++; });
@@ -1685,9 +1823,6 @@ function runAIAdvice() {
     });
 }
 
-// ==========================================
-// Confirm Dialog
-// ==========================================
 function openConfirmDialog(title, message, onConfirm) {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmMessage').textContent = message;
@@ -1705,9 +1840,6 @@ document.getElementById('confirmYesBtn').onclick = function() {
     closeConfirmDialog();
 };
 
-// ==========================================
-// Toast
-// ==========================================
 function showToast(text, type = 'success') {
     const toast = document.getElementById('toast');
     const icon = document.getElementById('toastIcon');
@@ -1723,9 +1855,9 @@ function showToast(text, type = 'success') {
     }, 3500);
 }
 
-// ==========================================
-// Auto-save
-// ==========================================
+// إغلاق عارض الصور بالضغط على ESC
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImageViewer(); });
+
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') { saveData(); saveFilters(); }
 });
