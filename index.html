@@ -11,7 +11,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- مكتبة JSZip لإنشاء ملفات Excel مع صور -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
@@ -66,33 +65,29 @@
             100% { opacity: 0; transform: scale(1.15); }
         }
 
-        /* 🔍 تكبير الصورة */
         .product-thumb { cursor: zoom-in; transition: transform 0.15s; }
         .product-thumb:active { transform: scale(0.95); }
 
-        #imageViewer {
-            animation: fadeIn 0.2s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        #imageViewer img {
-            animation: zoomIn 0.25s ease-out;
-        }
-        @keyframes zoomIn {
-            from { transform: scale(0.85); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
+        #imageViewer { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #imageViewer img { animation: zoomIn 0.25s ease-out; }
+        @keyframes zoomIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* زر تعديل */
         .edit-btn { transition: all 0.15s; }
         .edit-btn:active { transform: scale(0.9); }
+
+        /* فاصل التاريخ */
+        .date-divider {
+            background: linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.02));
+            border-right: 4px solid #10b981;
+        }
+        body.dark .date-divider {
+            background: linear-gradient(90deg, rgba(16,185,129,0.25), rgba(16,185,129,0.03));
+        }
     </style>
 </head>
 <body class="text-slate-800 pb-24 select-none">
 
-    <!-- الشريط العلوي -->
     <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-lg">
         <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -180,7 +175,21 @@
             <button data-cat="other" onclick="setCategoryFilter('other')" class="cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200" data-i18n="catOther">📦 أخرى</button>
         </div>
 
+        <!-- ملخص إحصائي -->
+        <div id="summaryBar" class="hidden bg-white rounded-2xl border border-slate-200 p-3 shadow-sm">
+            <div class="flex items-center justify-between gap-2 flex-wrap text-xs font-bold">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="package-search" class="w-4 h-4 text-emerald-600"></i>
+                    <span id="summaryText" class="text-slate-700"></span>
+                </div>
+                <span id="summaryTotal" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg"></span>
+            </div>
+        </div>
+
         <div id="batchesList" class="space-y-3"></div>
+
+        <!-- أزرار الترقيم -->
+        <div id="paginationControls" class="hidden flex items-center justify-center gap-1.5 flex-wrap py-2"></div>
 
         <div id="emptyState" class="hidden text-center py-12 px-4 bg-white rounded-3xl border border-dashed border-slate-300">
             <div class="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
@@ -198,7 +207,6 @@
         </button>
     </div>
 
-    <!-- 🔍 عارض الصور المكبّر -->
     <div id="imageViewer" class="hidden fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4">
         <button onclick="closeImageViewer()" class="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white p-2.5 rounded-full z-10 active:scale-90 transition">
             <i data-lucide="x" class="w-6 h-6"></i>
@@ -206,7 +214,6 @@
         <img id="viewerImage" src="" alt="Product" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl">
     </div>
 
-    <!-- Scanner Modal -->
     <div id="scannerModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-sm flex flex-col justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full mx-auto overflow-hidden shadow-2xl">
             <div class="bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between">
@@ -232,7 +239,6 @@
         </div>
     </div>
 
-    <!-- Add/Edit Modal -->
     <div id="addModal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-xs overflow-y-auto p-3 sm:p-6">
         <div class="bg-white rounded-3xl max-w-lg w-full mx-auto my-2 shadow-2xl overflow-hidden">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
@@ -262,6 +268,18 @@
                             <span data-i18n="scanBtn">مسح</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- تاريخ الدخول -->
+                <div class="bg-sky-50/70 border border-sky-200 p-3 rounded-2xl flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 text-sky-800">
+                        <i data-lucide="calendar-plus" class="w-5 h-5 text-sky-600"></i>
+                        <div>
+                            <div class="text-[11px] font-extrabold" data-i18n="entryDateLabel">تاريخ الدخول</div>
+                            <div class="text-[10px] text-sky-600" data-i18n="entryDateHint">افتراضياً: اليوم</div>
+                        </div>
+                    </div>
+                    <input type="date" id="inputEntryDate" class="bg-white border border-sky-300 rounded-xl px-2.5 py-1.5 text-xs font-extrabold text-sky-900 focus:outline-none focus:border-sky-600">
                 </div>
 
                 <div class="flex gap-3 items-start">
@@ -331,7 +349,6 @@
         </div>
     </div>
 
-    <!-- Backup Modal -->
     <div id="backupModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-md w-full my-4 overflow-hidden shadow-2xl">
             <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
@@ -354,7 +371,6 @@
                         <span data-i18n="exportSection">تصدير البيانات</span>
                     </h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <!-- ⭐ تصدير Excel مع الصور -->
                         <button onclick="exportExcelWithImages()" class="col-span-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition">
                             <i data-lucide="image" class="w-5 h-5"></i>
                             <span class="text-xs" data-i18n="exportExcelImagesBtn">Excel مع الصور 🖼️</span>
@@ -405,7 +421,6 @@
         </div>
     </div>
 
-    <!-- AI Modal -->
     <div id="aiModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm overflow-y-auto p-3 sm:p-6">
         <div class="bg-white rounded-3xl max-w-2xl w-full mx-auto my-4 shadow-2xl overflow-hidden ai-glow">
             <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white px-5 py-4 flex items-center justify-between">
@@ -450,7 +465,6 @@
         </div>
     </div>
 
-    <!-- Confirm Dialog -->
     <div id="confirmDialog" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl text-center space-y-4">
             <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
@@ -465,7 +479,6 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2">
         <div id="toastContent" class="bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 border border-slate-700">
             <span id="toastIcon"></span>
@@ -475,7 +488,7 @@
 
 <script>
 // ==========================================
-// بياناتك المضمّنة
+// بيانات مضمّنة
 // ==========================================
 const EMBEDDED_DATA = {
     version: 2,
@@ -506,6 +519,7 @@ const I18N = {
         scanBtn: 'مسح', photoLabel: 'صورة', takePhoto: 'التقط', removePhoto: 'حذف الصورة',
         nameLabel: 'اسم الصنف *', namePlaceholder: 'مثال: لبنة المراعي 400 غرام',
         categoryLabel: 'القسم', expiryLabel: 'تاريخ انتهاء الصلاحية *',
+        entryDateLabel: 'تاريخ الدخول', entryDateHint: 'افتراضياً: اليوم',
         qtyLabel: 'الكمية على الرف', alertDaysLabel: 'نبهني قبل (أيام)',
         saveBtn: 'حفظ الصنف', updateBtn: 'تحديث الصنف', cancelBtn: 'إلغاء',
         backupTitle: 'النسخ الاحتياطي وإدارة البيانات',
@@ -518,10 +532,6 @@ const I18N = {
         exportBtn: 'تصدير نسخة احتياطية (JSON)', importBtn: 'استعادة من ملف (JSON/CSV/XLSX)',
         clearAllBtn: 'مسح جميع البيانات من التطبيق',
         loadEmbeddedBtn: 'تحميل البيانات المضمّنة في الملف',
-        copySiteUrlBtn: 'نسخ رابط الموقع للمشاركة',
-        copyLink: 'نسخ الرابط', shareSiteLabel: 'رابط الموقع:',
-        siteUrlCopied: 'تم نسخ رابط الموقع!',
-        siteUrlEmpty: 'لم يتم تعيين رابط الموقع. ارفع الملف على استضافة أولاً.',
         embeddedLoaded: (n) => `تم تحميل ${n} صنف من البيانات المضمّنة!`,
         embeddedEmpty: 'لا توجد بيانات مضمّنة في الملف.',
         aiTitle: 'المساعد الذكي', aiWelcome: '👋 مرحباً! أنا مساعدك الذكي.',
@@ -532,6 +542,7 @@ const I18N = {
         expiredSince: (d) => `منتهي منذ ${d} يوم`, expiresToday: 'ينتهي اليوم!',
         daysLeft: (d) => d === 1 ? 'باقي يوم واحد!' : `باقي ${d} أيام`,
         daysLeftShort: (d) => `باقي ${d} يوم`, expiryDate: 'ينتهي في:', qty: 'الكمية:',
+        entryDate: 'دخل في:',
         dispose: 'تم التصريف', disposeConfirmTitle: 'تم تصريف الكمية؟',
         disposeConfirmMsg: (name) => `هل تريد إزالة "${name}" من قائمة المتابعة؟`,
         editBtn: 'تعديل',
@@ -559,9 +570,15 @@ const I18N = {
         aiActionMonitor: 'مراقبة', aiActionOk: 'سليم',
         draftRestored: 'تم استعادة مسودتك السابقة',
         copiedToClipboard: 'تم النسخ إلى الحافظة!',
-        imageNoData: 'لا توجد صورة',
         exportingImages: 'جاري تجهيز Excel مع الصور...',
-        viewImage: 'عرض الصورة'
+        viewImage: 'عرض الصورة',
+        summaryText: (n) => `إجمالي ${n} منتج معروض`,
+        pageLabel: (a, b) => `صفحة ${a} من ${b}`,
+        prevPage: 'السابق', nextPage: 'التالي',
+        products: 'منتج',
+        perPage: 'لكل صفحة',
+        today: 'اليوم',
+        yesterday: 'أمس'
     },
     en: {
         appTitle: 'Expiry Tracker', appSubtitle: 'Supermarket Shelf Management',
@@ -584,6 +601,7 @@ const I18N = {
         scanBtn: 'Scan', photoLabel: 'Photo', takePhoto: 'Take', removePhoto: 'Remove Photo',
         nameLabel: 'Product Name *', namePlaceholder: 'e.g. Almarai Labneh 400g',
         categoryLabel: 'Category', expiryLabel: 'Expiry Date *',
+        entryDateLabel: 'Entry Date', entryDateHint: 'Default: Today',
         qtyLabel: 'Shelf Quantity', alertDaysLabel: 'Alert before (days)',
         saveBtn: 'Save Product', updateBtn: 'Update Product', cancelBtn: 'Cancel',
         backupTitle: 'Backup & Data Management',
@@ -596,10 +614,6 @@ const I18N = {
         exportBtn: 'Export Backup (JSON)', importBtn: 'Restore from File (JSON/CSV/XLSX)',
         clearAllBtn: 'Clear All Data',
         loadEmbeddedBtn: 'Load Embedded Data from File',
-        copySiteUrlBtn: 'Copy Site URL for Sharing',
-        copyLink: 'Copy Link', shareSiteLabel: 'Site URL:',
-        siteUrlCopied: 'Site URL copied!',
-        siteUrlEmpty: 'No site URL set. Host the file first.',
         embeddedLoaded: (n) => `Loaded ${n} items from embedded data!`,
         embeddedEmpty: 'No embedded data in file.',
         aiTitle: 'AI Assistant', aiWelcome: '👋 Hello! I am your smart assistant.',
@@ -610,6 +624,7 @@ const I18N = {
         expiredSince: (d) => `Expired ${d}d ago`, expiresToday: 'Expires today!',
         daysLeft: (d) => d === 1 ? '1 day left!' : `${d} days left`,
         daysLeftShort: (d) => `${d}d left`, expiryDate: 'Expires:', qty: 'Qty:',
+        entryDate: 'Entered:',
         dispose: 'Disposed', disposeConfirmTitle: 'Dispose quantity?',
         disposeConfirmMsg: (name) => `Remove "${name}" from tracking?`,
         editBtn: 'Edit',
@@ -637,9 +652,15 @@ const I18N = {
         aiActionMonitor: 'Monitor', aiActionOk: 'Safe',
         draftRestored: 'Draft restored',
         copiedToClipboard: 'Copied to clipboard!',
-        imageNoData: 'No image',
         exportingImages: 'Preparing Excel with images...',
-        viewImage: 'View Image'
+        viewImage: 'View Image',
+        summaryText: (n) => `${n} products shown`,
+        pageLabel: (a, b) => `Page ${a} of ${b}`,
+        prevPage: 'Previous', nextPage: 'Next',
+        products: 'items',
+        perPage: 'per page',
+        today: 'Today',
+        yesterday: 'Yesterday'
     }
 };
 
@@ -649,8 +670,11 @@ const STORAGE_KEYS = {
     FILTERS: 'sm_filters', FORM_DRAFT: 'sm_form_draft'
 };
 
+const PER_PAGE = 50;
+
 let batches = [], catalog = {};
 let currentStatusFilter = 'all', currentCategoryFilter = 'all';
+let currentPage = 1;
 let currentCompressedImage = '';
 let html5QrcodeScanner = null, scannerMode = 'form';
 let currentLang = 'ar', currentTheme = 'light';
@@ -686,7 +710,7 @@ function applyLanguage() {
     document.getElementById('langLabel').textContent = currentLang === 'ar' ? 'EN' : 'AR';
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
-        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+        if (I18N[currentLang][key] && typeof I18N[currentLang][key] === 'string') el.textContent = I18N[currentLang][key];
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.dataset.i18nPlaceholder;
@@ -744,16 +768,16 @@ function saveFilters() {
 }
 
 function bindFormDraft() {
-    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
+    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays','inputEntryDate'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.addEventListener('input', saveFormDraft); el.addEventListener('change', saveFormDraft); }
     });
 }
 
 function saveFormDraft() {
-    if (document.getElementById('editBatchId').value) return; // لا تحفظ مسودة أثناء التعديل
+    if (document.getElementById('editBatchId').value) return;
     const draft = {};
-    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays'].forEach(id => {
+    ['inputBarcode','inputName','inputCategory','inputExpiry','inputQty','inputAlertDays','inputEntryDate'].forEach(id => {
         const el = document.getElementById(id);
         if (el) draft[id] = el.value;
     });
@@ -770,6 +794,7 @@ function restoreFormDraft() {
         if (draft.inputExpiry) document.getElementById('inputExpiry').value = draft.inputExpiry;
         if (draft.inputQty) document.getElementById('inputQty').value = draft.inputQty;
         if (draft.inputAlertDays) document.getElementById('inputAlertDays').value = draft.inputAlertDays;
+        if (draft.inputEntryDate) document.getElementById('inputEntryDate').value = draft.inputEntryDate;
         if (draft.image) setPreviewImage(draft.image);
         updateDaysPreview();
         return Object.keys(draft).length > 0 && draft.inputName;
@@ -778,6 +803,11 @@ function restoreFormDraft() {
 
 function clearFormDraft() { localStorage.removeItem(STORAGE_KEYS.FORM_DRAFT); }
 
+function todayStr() {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+}
+
 function loadData() {
     try {
         const savedBatches = localStorage.getItem(STORAGE_KEYS.BATCHES);
@@ -785,6 +815,8 @@ function loadData() {
         const isInitialized = localStorage.getItem(STORAGE_KEYS.INIT);
         if (savedBatches) batches = JSON.parse(savedBatches);
         if (savedCatalog) catalog = JSON.parse(savedCatalog);
+        // تأكد من وجود تاريخ الدخول لكل دفعة
+        batches.forEach(b => { if (!b.entryDate) b.entryDate = todayStr(); });
         if (!isInitialized && batches.length === 0) {
             if (EMBEDDED_DATA && Array.isArray(EMBEDDED_DATA.batches) && EMBEDDED_DATA.batches.length > 0) {
                 batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
@@ -797,9 +829,9 @@ function loadData() {
                     return d.toISOString().split('T')[0];
                 };
                 const sampleProducts = [
-                    { id: 'demo-1', barcode: '6281007041123', name: 'لبنة طازجة كاملة الدسم 400غ', category: 'dairy', expiryDate: formatDate(-2), qty: 4, alertDays: 4, image: '' },
-                    { id: 'demo-2', barcode: '6223001360458', name: 'عصير مانجو طبيعي 1 لتر', category: 'drinks', expiryDate: formatDate(5), qty: 9, alertDays: 7, image: '' },
-                    { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '' }
+                    { id: 'demo-1', barcode: '6281007041123', name: 'لبنة طازجة كاملة الدسم 400غ', category: 'dairy', expiryDate: formatDate(-2), qty: 4, alertDays: 4, image: '', entryDate: formatDate(-1) },
+                    { id: 'demo-2', barcode: '6223001360458', name: 'عصير مانجو طبيعي 1 لتر', category: 'drinks', expiryDate: formatDate(5), qty: 9, alertDays: 7, image: '', entryDate: formatDate(-1) },
+                    { id: 'demo-3', barcode: '5449000000996', name: 'فول مدمس معلب بالخلطة 450غ', category: 'canned', expiryDate: formatDate(120), qty: 24, alertDays: 15, image: '', entryDate: formatDate(0) }
                 ];
                 batches = sampleProducts;
                 sampleProducts.forEach(p => { catalog[p.barcode] = { name: p.name, category: p.category, image: p.image, alertDays: p.alertDays }; });
@@ -820,6 +852,7 @@ function loadEmbeddedData() {
         () => {
             batches = JSON.parse(JSON.stringify(EMBEDDED_DATA.batches));
             catalog = JSON.parse(JSON.stringify(EMBEDDED_DATA.catalog || {}));
+            batches.forEach(b => { if (!b.entryDate) b.entryDate = todayStr(); });
             saveData(); localStorage.setItem(STORAGE_KEYS.INIT, 'true');
             renderBatches(); closeBackupModal();
             showToast(t('embeddedLoaded', batches.length), 'success');
@@ -864,9 +897,42 @@ function getCategoryLabel(catKey) {
     return c ? `${c.emoji} ${c[currentLang]}` : catKey;
 }
 
+// تنسيق التاريخ بصيغة جميلة
+function formatEntryDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr + 'T00:00:00');
+        const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        return d.toLocaleDateString(currentLang === 'ar' ? 'ar-EG' : 'en-US', opts);
+    } catch (e) { return dateStr; }
+}
+
+// هل هذا اليوم هو اليوم أم أمس؟
+function getRelativeDateLabel(dateStr) {
+    const today = todayStr();
+    if (dateStr === today) return t('today');
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    if (dateStr === yesterday.toISOString().split('T')[0]) return t('yesterday');
+    return '';
+}
+
+// تجميع الدفعات حسب تاريخ الدخول
+function groupByEntryDate(items) {
+    const groups = {};
+    items.forEach(item => {
+        const key = item.entryDate || 'unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+    });
+    // ترتيب المجموعات: الأحدث أولاً
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+}
+
 function renderBatches() {
     const listEl = document.getElementById('batchesList');
     const emptyEl = document.getElementById('emptyState');
+    const paginationEl = document.getElementById('paginationControls');
+    const summaryEl = document.getElementById('summaryBar');
     const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
     document.getElementById('clearSearchBtn').classList.toggle('hidden', searchQuery.length === 0);
 
@@ -894,57 +960,163 @@ function renderBatches() {
         return matchStatus && matchCat && matchSearch;
     });
 
-    if (filtered.length === 0) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
+    if (filtered.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        paginationEl.classList.add('hidden');
+        summaryEl.classList.add('hidden');
+        return;
+    }
     emptyEl.classList.add('hidden');
+    summaryEl.classList.remove('hidden');
 
-    listEl.innerHTML = filtered.map(item => {
-        const imgHtml = item.image
-            ? `<img src="${item.image}" alt="${item.name}" onclick="openImageViewer('${item.id}')" class="product-thumb w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100">`
-            : `<div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400"><i data-lucide="package" class="w-7 h-7"></i></div>`;
-        const barcodeHtml = item.barcode ? `<span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">${item.barcode}</span>` : '';
-        return `
-        <div class="${item.status.cardBg} ${item.status.cardBorder} border rounded-3xl p-3.5 shadow-xs transition">
-            <div class="flex gap-3">
-                ${imgHtml}
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-start justify-between gap-2">
-                        <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug truncate">${item.name}</h3>
-                        <span class="${item.status.badgeBg} text-[11px] font-extrabold px-2.5 py-1 rounded-xl whitespace-nowrap shrink-0">${item.status.label}</span>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span class="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">${getCategoryLabel(item.category)}</span>
-                        ${barcodeHtml}
-                    </div>
-                    <div class="mt-2 flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
-                        <span>${t('expiryDate')} <span dir="ltr" class="font-extrabold">${item.expiryDate}</span></span>
-                    </div>
+    // شريط الملخص
+    document.getElementById('summaryText').textContent = t('summaryText', filtered.length);
+    document.getElementById('summaryTotal').textContent = `${filtered.reduce((s, i) => s + i.qty, 0)} ${t('products')}`;
+
+    // حساب الصفحات
+    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    const start = (currentPage - 1) * PER_PAGE;
+    const pageItems = filtered.slice(start, start + PER_PAGE);
+
+    // تجميع حسب تاريخ الدخول (داخل الصفحة)
+    const groups = groupByEntryDate(pageItems);
+
+    let html = '';
+    groups.forEach(([entryDate, items]) => {
+        const dateLabel = formatEntryDate(entryDate);
+        const relativeLabel = getRelativeDateLabel(entryDate);
+        const badgeLabel = relativeLabel ? `${relativeLabel} · ${dateLabel}` : dateLabel;
+        const totalQty = items.reduce((s, i) => s + i.qty, 0);
+        html += `
+            <div class="date-divider rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2 mt-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i data-lucide="calendar-days" class="w-4 h-4 text-emerald-700 shrink-0"></i>
+                    <span class="text-xs sm:text-sm font-extrabold text-emerald-900 truncate">${badgeLabel}</span>
                 </div>
+                <span class="bg-emerald-600 text-white text-[11px] font-extrabold px-2.5 py-1 rounded-lg whitespace-nowrap">
+                    ${items.length} ${t('products')} · ${t('qty')} ${totalQty}
+                </span>
             </div>
-            <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
-                <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                    <button onclick="updateBatchQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">-</button>
-                    <span class="px-2.5 text-xs font-extrabold text-slate-800">${t('qty')} ${item.qty}</span>
-                    <button onclick="updateBatchQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">+</button>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <button onclick="openEditModal('${item.id}')" class="edit-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                        <span>${t('editBtn')}</span>
-                    </button>
-                    <button onclick="disposeBatch('${item.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
-                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
-                        <span>${t('dispose')}</span>
-                    </button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+        `;
+        html += items.map(item => renderBatchCard(item)).join('');
+    });
+
+    listEl.innerHTML = html;
+
+    // رسم أزرار الترقيم
+    renderPagination(totalPages, filtered.length);
 
     lucide.createIcons();
 }
 
-// 🔍 عارض الصور
+function renderBatchCard(item) {
+    const imgHtml = item.image
+        ? `<img src="${item.image}" alt="${item.name}" onclick="openImageViewer('${item.id}')" class="product-thumb w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 bg-slate-100">`
+        : `<div class="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400"><i data-lucide="package" class="w-7 h-7"></i></div>`;
+    const barcodeHtml = item.barcode ? `<span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">${item.barcode}</span>` : '';
+    const entryHtml = item.entryDate 
+        ? `<span class="flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+              <i data-lucide="calendar-plus" class="w-3 h-3"></i>
+              ${t('entryDate')} ${item.entryDate}
+           </span>` 
+        : '';
+    return `
+    <div class="${item.status.cardBg} ${item.status.cardBorder} border rounded-3xl p-3.5 shadow-xs transition">
+        <div class="flex gap-3">
+            ${imgHtml}
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base leading-snug truncate">${item.name}</h3>
+                    <span class="${item.status.badgeBg} text-[11px] font-extrabold px-2.5 py-1 rounded-xl whitespace-nowrap shrink-0">${item.status.label}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span class="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">${getCategoryLabel(item.category)}</span>
+                    ${barcodeHtml}
+                    ${entryHtml}
+                </div>
+                <div class="mt-2 flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span>${t('expiryDate')} <span dir="ltr" class="font-extrabold">${item.expiryDate}</span></span>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                <button onclick="updateBatchQty('${item.id}', -1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">-</button>
+                <span class="px-2.5 text-xs font-extrabold text-slate-800">${t('qty')} ${item.qty}</span>
+                <button onclick="updateBatchQty('${item.id}', 1)" class="w-8 h-8 rounded-lg bg-white shadow-xs font-extrabold text-slate-700 hover:bg-slate-200 active:scale-90 transition flex items-center justify-center">+</button>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="openEditModal('${item.id}')" class="edit-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    <span>${t('editBtn')}</span>
+                </button>
+                <button onclick="disposeBatch('${item.id}')" class="bg-slate-900 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                    <span>${t('dispose')}</span>
+                </button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderPagination(totalPages, totalItems) {
+    const paginationEl = document.getElementById('paginationControls');
+    if (totalPages <= 1) {
+        paginationEl.classList.add('hidden');
+        paginationEl.innerHTML = '';
+        return;
+    }
+    paginationEl.classList.remove('hidden');
+
+    let html = `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}
+        class="px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 active:scale-95 transition flex items-center gap-1">
+        <i data-lucide="${currentLang === 'ar' ? 'chevron-right' : 'chevron-left'}" class="w-4 h-4"></i>
+        ${t('prevPage')}
+    </button>`;
+
+    // أزرار الصفحات
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+    if (startPage > 1) {
+        html += pageButton(1);
+        if (startPage > 2) html += `<span class="px-1 text-slate-400 text-xs">...</span>`;
+    }
+    for (let p = startPage; p <= endPage; p++) html += pageButton(p);
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="px-1 text-slate-400 text-xs">...</span>`;
+        html += pageButton(totalPages);
+    }
+
+    html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}
+        class="px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 active:scale-95 transition flex items-center gap-1">
+        ${t('nextPage')}
+        <i data-lucide="${currentLang === 'ar' ? 'chevron-left' : 'chevron-right'}" class="w-4 h-4"></i>
+    </button>`;
+
+    paginationEl.innerHTML = html;
+    lucide.createIcons();
+}
+
+function pageButton(p) {
+    if (p === currentPage) {
+        return `<button class="w-9 h-9 rounded-xl text-xs font-extrabold bg-slate-900 text-white">${p}</button>`;
+    }
+    return `<button onclick="goToPage(${p})" class="w-9 h-9 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 active:scale-95 transition">${p}</button>`;
+}
+
+function goToPage(p) {
+    currentPage = p;
+    renderBatches();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function openImageViewer(batchId) {
     const item = batches.find(b => b.id === batchId);
     if (!item || !item.image) return;
@@ -958,7 +1130,6 @@ function closeImageViewer() {
     document.body.style.overflow = '';
 }
 
-// ✏️ فتح نافذة التعديل
 function openEditModal(batchId) {
     const item = batches.find(b => b.id === batchId);
     if (!item) return;
@@ -970,6 +1141,7 @@ function openEditModal(batchId) {
     document.getElementById('inputExpiry').value = item.expiryDate;
     document.getElementById('inputQty').value = item.qty;
     document.getElementById('inputAlertDays').value = item.alertDays;
+    document.getElementById('inputEntryDate').value = item.entryDate || todayStr();
     
     if (item.image) setPreviewImage(item.image);
     else clearImage();
@@ -984,10 +1156,11 @@ function openEditModal(batchId) {
     lucide.createIcons();
 }
 
-function onSearchInput() { saveFilters(); renderBatches(); }
+function onSearchInput() { currentPage = 1; saveFilters(); renderBatches(); }
 
 function setStatusFilter(status, rerender = true) {
     currentStatusFilter = status;
+    currentPage = 1;
     document.querySelectorAll('.status-pill').forEach(btn => {
         if (btn.dataset.status === status) {
             btn.classList.add('bg-slate-900', 'text-white');
@@ -1007,6 +1180,7 @@ function setStatusFilter(status, rerender = true) {
 
 function setCategoryFilter(cat, rerender = true) {
     currentCategoryFilter = cat;
+    currentPage = 1;
     document.querySelectorAll('.cat-pill').forEach(btn => {
         if (btn.dataset.cat === cat) btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-slate-800 text-white';
         else btn.className = 'cat-pill px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-slate-600 border border-slate-200';
@@ -1017,6 +1191,7 @@ function setCategoryFilter(cat, rerender = true) {
 
 function clearSearch() {
     document.getElementById('searchInput').value = '';
+    currentPage = 1;
     saveFilters();
     renderBatches();
 }
@@ -1050,7 +1225,7 @@ function startScanner(mode) {
                 playBeep(); stopScanner();
                 if (scannerMode === 'search') {
                     const searchInput = document.getElementById('searchInput');
-                    searchInput.value = decodedText; saveFilters(); renderBatches();
+                    searchInput.value = decodedText; currentPage = 1; saveFilters(); renderBatches();
                     const resultsCount = batches.filter(b => b.name.toLowerCase().includes(decodedText.toLowerCase()) || (b.barcode && b.barcode.toLowerCase().includes(decodedText.toLowerCase()))).length;
                     if (resultsCount > 0) showToast(`✅ ${currentLang === 'ar' ? 'تم العثور على' : 'Found'} ${resultsCount} ${currentLang === 'ar' ? 'صنف' : 'items'}`, 'success');
                     else showToast(`⚠️ ${currentLang === 'ar' ? 'لا توجد نتائج للباركود:' : 'No results for:'} ${decodedText}`, 'warning');
@@ -1077,7 +1252,7 @@ function stopScanner() {
 function handleBarcodeLookup(barcode) {
     const cleanCode = barcode.trim();
     const banner = document.getElementById('autoFillBanner');
-    if (document.getElementById('editBatchId').value) return; // تجاهل في وضع التعديل
+    if (document.getElementById('editBatchId').value) return;
     if (cleanCode && catalog[cleanCode]) {
         const saved = catalog[cleanCode];
         document.getElementById('inputName').value = saved.name || '';
@@ -1135,8 +1310,13 @@ function openAddModal() {
     document.getElementById('daysPreviewText').textContent = '';
     document.getElementById('modalTitle').textContent = t('addModalTitle');
     document.getElementById('saveBtnText').textContent = t('saveBtn');
+    document.getElementById('inputEntryDate').value = todayStr(); // افتراضياً اليوم
     clearImage();
     const hasDraft = restoreFormDraft();
+    // لو ما في مسودة، خلي تاريخ الدخول اليوم
+    if (!document.getElementById('inputEntryDate').value) {
+        document.getElementById('inputEntryDate').value = todayStr();
+    }
     document.getElementById('addModal').classList.remove('hidden');
     lucide.createIcons();
     if (hasDraft) showToast(t('draftRestored'), 'success');
@@ -1173,7 +1353,6 @@ function updateDaysPreview() {
     else { label.textContent = t('daysRemaining', days); label.className = 'text-xs font-extrabold text-emerald-700'; }
 }
 
-// 💾 حفظ / تحديث
 function saveBatch(e) {
     e.preventDefault();
     const editId = document.getElementById('editBatchId').value;
@@ -1183,20 +1362,19 @@ function saveBatch(e) {
     const expiryDate = document.getElementById('inputExpiry').value;
     const qty = parseInt(document.getElementById('inputQty').value) || 1;
     const alertDays = parseInt(document.getElementById('inputAlertDays').value) || 7;
+    const entryDate = document.getElementById('inputEntryDate').value || todayStr();
     if (!name || !expiryDate) return;
 
     if (editId) {
-        // ✏️ وضع التعديل
         const idx = batches.findIndex(b => b.id === editId);
         if (idx !== -1) {
-            batches[idx] = { ...batches[idx], barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
+            batches[idx] = { ...batches[idx], barcode, name, category, expiryDate, qty, alertDays, entryDate, image: currentCompressedImage };
             if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
             saveData(); closeAddModal(); renderBatches();
             showToast(t('editSuccess'), 'success');
         }
     } else {
-        // ➕ وضع الإضافة
-        const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, image: currentCompressedImage };
+        const newBatch = { id: 'batch-' + Date.now(), barcode, name, category, expiryDate, qty, alertDays, entryDate, image: currentCompressedImage };
         batches.push(newBatch);
         if (barcode) catalog[barcode] = { name, category, image: currentCompressedImage, alertDays };
         saveData(); clearFormDraft(); closeAddModal(); renderBatches();
@@ -1261,6 +1439,7 @@ function prepareExportData() {
             [currentLang === 'ar' ? 'الباركود' : 'Barcode']: b.barcode || '',
             [currentLang === 'ar' ? 'اسم الصنف' : 'Product Name']: b.name,
             [currentLang === 'ar' ? 'القسم' : 'Category']: getCategoryLabel(b.category),
+            [currentLang === 'ar' ? 'تاريخ الدخول' : 'Entry Date']: b.entryDate || '',
             [currentLang === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date']: b.expiryDate,
             [currentLang === 'ar' ? 'الكمية' : 'Quantity']: b.qty,
             [currentLang === 'ar' ? 'أيام التنبيه' : 'Alert Days']: b.alertDays,
@@ -1270,42 +1449,24 @@ function prepareExportData() {
     });
 }
 
-// ==========================================
-// ⭐ تصدير Excel مع الصور (XLSX + JSZip)
-// ==========================================
 function exportExcelWithImages() {
     try {
-        if (batches.length === 0) {
-            showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning');
-            return;
-        }
-
+        if (batches.length === 0) { showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
         showToast(t('exportingImages'), 'warning');
-
         const headers = currentLang === 'ar' 
-            ? ['الصورة', 'الباركود', 'اسم الصنف', 'القسم', 'تاريخ الانتهاء', 'الكمية', 'أيام التنبيه', 'الحالة', 'الأيام المتبقية']
-            : ['Image', 'Barcode', 'Product Name', 'Category', 'Expiry Date', 'Quantity', 'Alert Days', 'Status', 'Days Remaining'];
-
-        // تجهيز البيانات مع الصور
+            ? ['الصورة', 'الباركود', 'اسم الصنف', 'القسم', 'تاريخ الدخول', 'تاريخ الانتهاء', 'الكمية', 'أيام التنبيه', 'الحالة', 'الأيام المتبقية']
+            : ['Image', 'Barcode', 'Product Name', 'Category', 'Entry Date', 'Expiry Date', 'Quantity', 'Alert Days', 'Status', 'Days Remaining'];
         const rows = batches.map(b => {
             const st = getBatchStatus(b);
             return {
-                image: b.image || '',
-                barcode: b.barcode || '',
-                name: b.name,
-                category: getCategoryLabel(b.category),
-                expiryDate: b.expiryDate,
-                qty: b.qty,
-                alertDays: b.alertDays,
-                status: st.label,
-                days: st.days
+                image: b.image || '', barcode: b.barcode || '', name: b.name,
+                category: getCategoryLabel(b.category), entryDate: b.entryDate || '',
+                expiryDate: b.expiryDate, qty: b.qty, alertDays: b.alertDays,
+                status: st.label, days: st.days
             };
         });
 
-        // إنشاء ملف Excel يدوياً باستخدام JSZip لدعم الصور
         const zip = new JSZip();
-        
-        // إضافة [Content_Types].xml
         const imageExtensions = {};
         let imageCount = 0;
         rows.forEach((row, idx) => {
@@ -1315,7 +1476,6 @@ function exportExcelWithImages() {
                 imageExtensions[`image${idx}`] = ext === 'jpeg' ? 'jpeg' : ext;
             }
         });
-
         const contentTypesOverrides = Object.keys(imageExtensions).map(key => 
             `<Override PartName="/xl/media/${key}.${imageExtensions[key]}" ContentType="image/${imageExtensions[key]}"/>`
         ).join('');
@@ -1332,22 +1492,19 @@ ${contentTypesOverrides}
 <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
-<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.drawing+xml"/>
 </Types>`);
 
-        // _rels/.rels
         zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
 </Relationships>`);
 
-        // xl/workbook.xml
         zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheets><sheet name="Products" sheetId="1" r:id="rId1"/></sheets>
 </workbook>`);
 
-        // xl/_rels/workbook.xml.rels
         zip.file('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
@@ -1356,7 +1513,6 @@ ${contentTypesOverrides}
 <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="drawings/drawing1.xml"/>
 </Relationships>`);
 
-        // xl/styles.xml - تنسيقات
         zip.file('xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
@@ -1377,26 +1533,17 @@ ${contentTypesOverrides}
 </cellXfs>
 </styleSheet>`);
 
-        // xl/sharedStrings.xml
         const allStrings = [];
         const stringIndex = {};
         function addString(s) {
             s = String(s || '');
-            if (!(s in stringIndex)) {
-                stringIndex[s] = allStrings.length;
-                allStrings.push(s);
-            }
+            if (!(s in stringIndex)) { stringIndex[s] = allStrings.length; allStrings.push(s); }
             return stringIndex[s];
         }
-        
-        // أضف كل النصوص
         headers.forEach(h => addString(h));
         rows.forEach(r => {
-            addString(r.barcode);
-            addString(r.name);
-            addString(r.category);
-            addString(r.expiryDate);
-            addString(r.status);
+            addString(r.barcode); addString(r.name); addString(r.category);
+            addString(r.entryDate); addString(r.expiryDate); addString(r.status);
         });
 
         zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1404,11 +1551,8 @@ ${contentTypesOverrides}
 ${allStrings.map(s => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('')}
 </sst>`);
 
-        // xl/worksheets/sheet1.xml
         const rowHeight = 90;
         let sheetData = '<sheetData>';
-        
-        // Header row
         sheetData += `<row r="1" ht="30" customHeight="1">`;
         headers.forEach((h, colIdx) => {
             const cellRef = getCellRef(colIdx, 1);
@@ -1416,54 +1560,49 @@ ${allStrings.map(s => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).jo
         });
         sheetData += `</row>`;
 
-        // Data rows
         rows.forEach((row, rowIdx) => {
             const r = rowIdx + 2;
             sheetData += `<row r="${r}" ht="${rowHeight}" customHeight="1">`;
-            // عمود الصورة (فارغ، سيُملأ بالصورة)
             sheetData += `<c r="A${r}" t="inlineStr"><is><t></t></is></c>`;
-            // باقي الأعمدة
             sheetData += `<c r="B${r}" t="s"><v>${stringIndex[row.barcode]}</v></c>`;
             sheetData += `<c r="C${r}" t="s"><v>${stringIndex[row.name]}</v></c>`;
             sheetData += `<c r="D${r}" t="s"><v>${stringIndex[row.category]}</v></c>`;
-            sheetData += `<c r="E${r}" t="s"><v>${stringIndex[row.expiryDate]}</v></c>`;
-            sheetData += `<c r="F${r}"><v>${row.qty}</v></c>`;
-            sheetData += `<c r="G${r}"><v>${row.alertDays}</v></c>`;
-            sheetData += `<c r="H${r}" t="s"><v>${stringIndex[row.status]}</v></c>`;
-            sheetData += `<c r="I${r}"><v>${row.days}</v></c>`;
+            sheetData += `<c r="E${r}" t="s"><v>${stringIndex[row.entryDate]}</v></c>`;
+            sheetData += `<c r="F${r}" t="s"><v>${stringIndex[row.expiryDate]}</v></c>`;
+            sheetData += `<c r="G${r}"><v>${row.qty}</v></c>`;
+            sheetData += `<c r="H${r}"><v>${row.alertDays}</v></c>`;
+            sheetData += `<c r="I${r}" t="s"><v>${stringIndex[row.status]}</v></c>`;
+            sheetData += `<c r="J${r}"><v>${row.days}</v></c>`;
             sheetData += `</row>`;
         });
-        
         sheetData += '</sheetData>';
 
-        // أعمدة العرض
         const cols = `<cols>
 <col min="1" max="1" width="12" customWidth="1"/>
 <col min="2" max="2" width="18" customWidth="1"/>
 <col min="3" max="3" width="30" customWidth="1"/>
 <col min="4" max="4" width="18" customWidth="1"/>
 <col min="5" max="5" width="15" customWidth="1"/>
-<col min="6" max="6" width="10" customWidth="1"/>
-<col min="7" max="7" width="12" customWidth="1"/>
-<col min="8" max="8" width="20" customWidth="1"/>
-<col min="9" max="9" width="15" customWidth="1"/>
+<col min="6" max="6" width="15" customWidth="1"/>
+<col min="7" max="7" width="10" customWidth="1"/>
+<col min="8" max="8" width="12" customWidth="1"/>
+<col min="9" max="9" width="20" customWidth="1"/>
+<col min="10" max="10" width="15" customWidth="1"/>
 </cols>`;
 
         zip.file('xl/worksheets/sheet1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<dimension ref="A1:I${rows.length + 1}"/>
+<dimension ref="A1:J${rows.length + 1}"/>
 ${cols}
 ${sheetData}
 <drawing r:id="rId4"/>
 </worksheet>`);
 
-        // xl/worksheets/_rels/sheet1.xml.rels
         zip.file('xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
 </Relationships>`);
 
-        // xl/drawings/drawing1.xml + الصور
         let drawingAnchors = '';
         let imageRelId = 1;
         const drawingRels = [];
@@ -1476,16 +1615,8 @@ ${sheetData}
                 if (ext === 'jpeg') ext = 'jpeg';
                 const base64Data = row.image.split(',')[1];
                 const imgName = `image${rowIdx}`;
-                
-                // إضافة الصورة كملف
                 zip.file(`xl/media/${imgName}.${ext}`, base64Data, { base64: true });
-                
-                // إضافة العلاقة
-                drawingRels.push({
-                    id: `rId${imageRelId}`,
-                    target: `../media/${imgName}.${ext}`
-                });
-
+                drawingRels.push({ id: `rId${imageRelId}`, target: `../media/${imgName}.${ext}` });
                 const r = rowIdx + 2;
                 drawingAnchors += `<xdr:twoCellAnchor editAs="oneCell">
 <xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r - 1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
@@ -1506,12 +1637,10 @@ ${sheetData}
 </xdr:pic>
 <xdr:clientData/>
 </xdr:twoCellAnchor>`;
-
                 imageRelId++;
             }
         });
 
-        // إذا لا توجد صور، أنشئ drawing فارغ
         if (drawingAnchors === '') {
             drawingAnchors = `<xdr:twoCellAnchor editAs="oneCell">
 <xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
@@ -1525,7 +1654,6 @@ ${sheetData}
 ${drawingAnchors}
 </xdr:wsDr>`);
 
-        // xl/drawings/_rels/drawing1.xml.rels
         if (drawingRels.length > 0) {
             zip.file('xl/drawings/_rels/drawing1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -1537,7 +1665,6 @@ ${drawingRels.map(rel => `<Relationship Id="${rel.id}" Type="http://schemas.open
 </Relationships>`);
         }
 
-        // إنشاء الملف وتنزيله
         zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }).then(content => {
             const dateTag = new Date().toISOString().split('T')[0];
             const url = URL.createObjectURL(content);
@@ -1547,15 +1674,8 @@ ${drawingRels.map(rel => `<Relationship Id="${rel.id}" Type="http://schemas.open
             document.body.appendChild(a); a.click(); a.remove();
             URL.revokeObjectURL(url);
             showToast(t('exportExcelImagesSuccess'), 'success');
-        }).catch(err => {
-            console.error(err);
-            showToast('Export error', 'error');
-        });
-
-    } catch (err) {
-        console.error(err);
-        showToast('Export error', 'error');
-    }
+        }).catch(err => { console.error(err); showToast('Export error', 'error'); });
+    } catch (err) { console.error(err); showToast('Export error', 'error'); }
 }
 
 function escapeXml(str) {
@@ -1565,14 +1685,10 @@ function escapeXml(str) {
 function getCellRef(col, row) {
     let s = '';
     let c = col;
-    while (c >= 0) {
-        s = String.fromCharCode(65 + (c % 26)) + s;
-        c = Math.floor(c / 26) - 1;
-    }
+    while (c >= 0) { s = String.fromCharCode(65 + (c % 26)) + s; c = Math.floor(c / 26) - 1; }
     return s + row;
 }
 
-// تصدير Excel العادي
 function exportExcel() {
     try {
         if (batches.length === 0) { showToast(currentLang === 'ar' ? 'لا توجد بيانات للتصدير' : 'No data to export', 'warning'); return; }
@@ -1663,6 +1779,7 @@ function importData(event) {
                 if (Array.isArray(imported.batches)) {
                     batches = imported.batches;
                     catalog = imported.catalog || {};
+                    batches.forEach(b => { if (!b.entryDate) b.entryDate = todayStr(); });
                     saveData(); renderBatches(); closeBackupModal();
                     showToast(t('importSuccess', batches.length), 'success');
                 } else showToast(t('importInvalid'), 'error');
@@ -1681,6 +1798,7 @@ function importData(event) {
                     const barcode = row['الباركود'] || row['Barcode'] || row['barcode'] || '';
                     const name = row['اسم الصنف'] || row['Product Name'] || row['name'] || row['Name'] || '';
                     const categoryLabel = row['القسم'] || row['Category'] || row['category'] || '';
+                    const entryDate = row['تاريخ الدخول'] || row['Entry Date'] || row['entryDate'] || todayStr();
                     const expiryDate = row['تاريخ الانتهاء'] || row['Expiry Date'] || row['expiryDate'] || row['Expiry'] || '';
                     const qty = parseInt(row['الكمية'] || row['Quantity'] || row['qty'] || 1) || 1;
                     const alertDays = parseInt(row['أيام التنبيه'] || row['Alert Days'] || row['alertDays'] || 7) || 7;
@@ -1692,7 +1810,7 @@ function importData(event) {
                     else if (catLower.includes('حلو') || catLower.includes('sweet')) category = 'sweets';
                     else if (catLower.includes('مجمد') || catLower.includes('frozen')) category = 'frozen';
                     if (!name) return null;
-                    return { id: 'batch-' + Date.now() + '-' + idx, barcode: String(barcode), name: String(name), category, expiryDate: String(expiryDate), qty, alertDays, image: '' };
+                    return { id: 'batch-' + Date.now() + '-' + idx, barcode: String(barcode), name: String(name), category, entryDate: String(entryDate), expiryDate: String(expiryDate), qty, alertDays, image: '' };
                 }).filter(Boolean);
                 if (importedBatches.length === 0) { showToast(t('importInvalid'), 'error'); return; }
                 openConfirmDialog(
@@ -1749,7 +1867,7 @@ function runAIAnalysis() {
         batches.forEach(b => { const st = getBatchStatus(b); counts[st.key]++; totalQty += b.qty; catCount[b.category] = (catCount[b.category] || 0) + b.qty; });
         const riskRate = Math.round(((counts.expired + counts.danger) / batches.length) * 100);
         const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
-        const html = `${aiCard('bar-chart-3', t('aiAnalysisTitle'), `
+        document.getElementById('aiContent').innerHTML = aiCard('bar-chart-3', t('aiAnalysisTitle'), `
             <div class="grid grid-cols-2 gap-2 mt-1">
                 <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold text-purple-700">${batches.length}</div><div class="text-[10px]">${t('aiTotal')}</div></div>
                 <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold text-purple-700">${totalQty}</div><div class="text-[10px]">${t('aiTotalQty')}</div></div>
@@ -1757,8 +1875,7 @@ function runAIAnalysis() {
                 <div class="bg-white rounded-lg p-2 text-center border border-purple-100"><div class="text-lg font-extrabold ${riskRate > 30 ? 'text-red-600' : 'text-emerald-600'}">${riskRate}%</div><div class="text-[10px]">${t('aiRiskRate')}</div></div>
             </div>
             ${topCat ? `<p class="mt-2 text-[11px]">📦 ${getCategoryLabel(topCat[0])}: <b>${topCat[1]}</b></p>` : ''}
-        `, 'purple')}`;
-        document.getElementById('aiContent').innerHTML = html;
+        `, 'purple');
         lucide.createIcons();
     });
 }
@@ -1768,7 +1885,7 @@ function runAIPriority() {
         if (batches.length === 0) { document.getElementById('aiContent').innerHTML = aiCard('info', t('aiPriorityTitle'), t('aiNoData'), 'slate'); lucide.createIcons(); return; }
         const enriched = batches.map(b => ({ ...b, st: getBatchStatus(b) })).sort((a, b) => a.st.days - b.st.days);
         const top5 = enriched.slice(0, 5);
-        const html = aiCard('list-ordered', t('aiPriorityTitle'), `
+        document.getElementById('aiContent').innerHTML = aiCard('list-ordered', t('aiPriorityTitle'), `
             <div class="space-y-2">
                 ${top5.map((b, i) => `
                     <div class="flex items-center gap-2 bg-white rounded-lg p-2 border border-indigo-100">
@@ -1781,7 +1898,6 @@ function runAIPriority() {
                 `).join('')}
             </div>
         `, 'indigo');
-        document.getElementById('aiContent').innerHTML = html;
         lucide.createIcons();
     });
 }
@@ -1791,7 +1907,7 @@ function runAIReport() {
         const counts = { expired: 0, danger: 0, warning: 0, safe: 0 };
         let totalQty = 0;
         batches.forEach(b => { counts[getBatchStatus(b).key]++; totalQty += b.qty; });
-        const html = aiCard('file-text', t('aiReportTitle'), `
+        document.getElementById('aiContent').innerHTML = aiCard('file-text', t('aiReportTitle'), `
             <table class="w-full text-[11px]">
                 <tr><td>🔴 ${t('statExpired')}</td><td class="text-right font-extrabold">${counts.expired}</td></tr>
                 <tr><td>🟠 ${t('statDanger')}</td><td class="text-right font-extrabold">${counts.danger}</td></tr>
@@ -1801,7 +1917,6 @@ function runAIReport() {
             </table>
             <div class="mt-2 text-[10px] text-emerald-700">${new Date().toLocaleString(currentLang === 'ar' ? 'ar-EG' : 'en-US')}</div>
         `, 'emerald');
-        document.getElementById('aiContent').innerHTML = html;
         lucide.createIcons();
     });
 }
@@ -1817,8 +1932,7 @@ function runAIAdvice() {
         if (expired === 0 && danger === 0) tips.push(currentLang === 'ar' ? '✅ وضعك ممتاز! استمر في المتابعة.' : '✅ Excellent! Continue monitoring.');
         tips.push(currentLang === 'ar' ? '💾 لا تنسَ تصدير نسخة احتياطية أسبوعياً.' : '💾 Do not forget to export a weekly backup.');
         if (batches.length > 20) tips.push(currentLang === 'ar' ? '📊 لديك مخزون كبير، فكر في تحليل الأكثر مبيعاً.' : '📊 Large inventory, consider analyzing best-sellers.');
-        const html = aiCard('lightbulb', t('aiAdviceTitle'), `<ul class="space-y-1.5">${tips.map(tip => `<li>${tip}</li>`).join('')}</ul>`, 'amber');
-        document.getElementById('aiContent').innerHTML = html;
+        document.getElementById('aiContent').innerHTML = aiCard('lightbulb', t('aiAdviceTitle'), `<ul class="space-y-1.5">${tips.map(tip => `<li>${tip}</li>`).join('')}</ul>`, 'amber');
         lucide.createIcons();
     });
 }
@@ -1855,7 +1969,22 @@ function showToast(text, type = 'success') {
     }, 3500);
 }
 
-// إغلاق عارض الصور بالضغط على ESC
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); resolve(); } catch (e) { reject(e); }
+        document.body.removeChild(ta);
+    });
+}
+
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImageViewer(); });
 
 document.addEventListener('visibilitychange', () => {
